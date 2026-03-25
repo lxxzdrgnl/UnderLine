@@ -61,6 +61,12 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+model ArtistCache {
+  genius_artist_id String   @id
+  description_ko   String?  @db.Text
+  created_at       DateTime @default(now())
+}
+
 model OAuthState {
   id           String   @id @default(cuid())
   mode         String   // 'login' | 'link'
@@ -133,6 +139,7 @@ model SearchHistory {
   title      String
   artist     String
   image_url  String?
+  type       String   @default("song") // "song" | "artist" | "album"
   created_at DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import Link from 'next/link'
 
 const LS_KEY = 'ul_search_history'
 const MAX_LOCAL = 10
@@ -100,6 +99,28 @@ export function SearchPageContent({ isLoggedIn }: { isLoggedIn: boolean }) {
       } catch {}
     }
     router.push(`/songs/${s.genius_id}`)
+  }, [isLoggedIn, router])
+
+  const handleArtistSelect = useCallback((a: { id: string; name: string; image_url: string | null }) => {
+    if (isLoggedIn) {
+      fetch('/api/user/search-history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ genius_id: `artist:${a.id}`, title: a.name, artist: '', image_url: a.image_url, type: 'artist' }),
+      }).catch(() => {})
+    }
+    router.push(`/artists/${a.id}`)
+  }, [isLoggedIn, router])
+
+  const handleAlbumSelect = useCallback((al: { id: string; name: string; cover_art_url: string | null; artist: string }) => {
+    if (isLoggedIn) {
+      fetch('/api/user/search-history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ genius_id: `album:${al.id}`, title: al.name, artist: al.artist, image_url: al.cover_art_url, type: 'album' }),
+      }).catch(() => {})
+    }
+    router.push(`/albums/${al.id}`)
   }, [isLoggedIn, router])
 
   const loadMore = useCallback(() => {
@@ -223,14 +244,14 @@ export function SearchPageContent({ isLoggedIn }: { isLoggedIn: boolean }) {
           ))}
 
           {type === 'artists' && results.map((a: { id: string; name: string; image_url: string | null }, idx: number) => (
-            <Link
+            <div
               key={a.id}
-              href={`/artists/${a.id}`}
+              onClick={() => handleArtistSelect(a)}
               className="hover-row"
               style={{
                 display: 'flex', alignItems: 'center', gap: '12px',
                 padding: '8px 12px', borderRadius: 'var(--r-md)',
-                textDecoration: 'none', transition: 'background 100ms',
+                cursor: 'pointer', transition: 'background 100ms',
                 animation: `fade-up 200ms var(--ease) ${Math.min(idx, 10) * 30}ms both`,
               }}
             >
@@ -248,18 +269,18 @@ export function SearchPageContent({ isLoggedIn }: { isLoggedIn: boolean }) {
                 <p style={{ margin: '0 0 2px', fontSize: '14px', fontWeight: 500, color: 'var(--text)' }}>{a.name}</p>
                 <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-faint)' }}>아티스트</p>
               </div>
-            </Link>
+            </div>
           ))}
 
           {type === 'albums' && results.map((al: { id: string; name: string; cover_art_url: string | null; artist: string }, idx: number) => (
-            <Link
+            <div
               key={al.id}
-              href={`/albums/${al.id}`}
+              onClick={() => handleAlbumSelect(al)}
               className="hover-row"
               style={{
                 display: 'flex', alignItems: 'center', gap: '12px',
                 padding: '8px 12px', borderRadius: 'var(--r-md)',
-                textDecoration: 'none', transition: 'background 100ms',
+                cursor: 'pointer', transition: 'background 100ms',
                 animation: `fade-up 200ms var(--ease) ${Math.min(idx, 10) * 30}ms both`,
               }}
             >
@@ -279,7 +300,7 @@ export function SearchPageContent({ isLoggedIn }: { isLoggedIn: boolean }) {
                   앨범 · {al.artist}
                 </p>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       )}

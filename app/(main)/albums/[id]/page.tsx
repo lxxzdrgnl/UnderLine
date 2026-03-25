@@ -23,7 +23,9 @@ export default async function AlbumPage({ params }: Props) {
           display: 'flex',
           alignItems: 'flex-end',
           gap: '28px',
-          padding: '40px 0 32px',
+          padding: '40px max(16px, calc(50vw - 566px)) 32px',
+          marginLeft: 'calc(-50vw + 50%)',
+          marginRight: 'calc(-50vw + 50%)',
           borderBottom: '1px solid var(--border)',
           background: 'linear-gradient(to bottom, rgba(255,255,255,0.025) 0%, transparent 100%)',
         }}

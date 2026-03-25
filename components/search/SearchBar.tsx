@@ -15,6 +15,7 @@ interface HistoryItem {
   title: string
   artist: string
   image_url: string | null
+  type?: string
 }
 
 const LS_KEY = 'ul_search_history'
@@ -172,7 +173,13 @@ export function SearchBar({ isLoggedIn = false, onOpenChange }: Props) {
   // ── Navigate from history ──────────────────────────────
   const handleHistorySelect = (item: HistoryItem) => {
     setIsFocused(false)
-    router.push(`/songs/${item.genius_id}`)
+    if (item.type === 'artist') {
+      router.push(`/artists/${item.genius_id.replace('artist:', '')}`)
+    } else if (item.type === 'album') {
+      router.push(`/albums/${item.genius_id.replace('album:', '')}`)
+    } else {
+      router.push(`/songs/${item.genius_id}`)
+    }
   }
 
   const isOpen = showHistory || showResults || loading
@@ -302,15 +309,17 @@ export function SearchBar({ isLoggedIn = false, onOpenChange }: Props) {
                     transition: 'background 80ms',
                   }}
                 >
-                  {/* Clock icon */}
                   <div style={{
-                    width: '40px', height: '40px', borderRadius: '4px', flexShrink: 0,
-                    overflow: 'hidden', background: '#333',
+                    width: '40px', height: '40px',
+                    borderRadius: item.type === 'artist' ? '50%' : '4px',
+                    flexShrink: 0, overflow: 'hidden', background: '#333',
                   }}>
                     {item.image_url ? (
                       <img src={item.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
-                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)', fontSize: '16px' }}>♪</div>
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)', fontSize: '16px' }}>
+                        {item.type === 'artist' ? '♫' : '♪'}
+                      </div>
                     )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -318,7 +327,7 @@ export function SearchBar({ isLoggedIn = false, onOpenChange }: Props) {
                       {item.title}
                     </p>
                     <p style={{ margin: '1px 0 0', fontSize: '12px', color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {item.artist}
+                      {item.type === 'artist' ? '아티스트' : item.type === 'album' ? `앨범 · ${item.artist}` : item.artist}
                     </p>
                   </div>
                   <button
@@ -329,12 +338,14 @@ export function SearchBar({ isLoggedIn = false, onOpenChange }: Props) {
                       flexShrink: 0, width: '28px', height: '28px',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: 'transparent', border: 'none', borderRadius: '50%',
-                      cursor: 'pointer', color: 'var(--text-faint)', fontSize: '14px',
-                      opacity: 0, transition: 'opacity 120ms, background 120ms',
+                      cursor: 'pointer', color: 'var(--text-faint)',
+                      opacity: 0.4, transition: 'opacity 120ms, background 120ms',
                     }}
                     title="삭제"
                   >
-                    ✕
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
                   </button>
                 </li>
               ))}

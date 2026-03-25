@@ -45,18 +45,58 @@ export async function fetchSpotifyArtistAlbums(artistName: string): Promise<Spot
 
   // 2. Get albums
   const albumsRes = await fetch(
-    `https://api.spotify.com/v1/artists/${spotifyArtist.id}/albums?include_groups=album,single&limit=10&market=KR`,
+    `https://api.spotify.com/v1/artists/${spotifyArtist.id}/albums?include_groups=album,single,compilation&limit=10&market=KR`,
     { headers: { Authorization: `Bearer ${token}` } }
   )
   if (!albumsRes.ok) return []
   const albumsData = await albumsRes.json()
 
-  return (albumsData.items ?? []).map((a: { id: string; name: string; images: { url: string }[]; release_date: string; album_type: string }) => ({
+  const spotifyArtistId = spotifyArtist.id
+  return (albumsData.items ?? [])
+    .filter((a: { artists: { id: string }[]; album_type: string; total_tracks: number }) =>
+      a.artists?.some((ar) => ar.id === spotifyArtistId)
+      && (a.album_type === 'album' || a.album_type === 'compilation' || a.total_tracks >= 3)
+    )
+    .map((a: { id: string; name: string; images: { url: string }[]; release_date: string; album_type: string }) => ({
+      id: a.id,
+      name: a.name,
+      image_url: a.images?.[0]?.url ?? null,
+      release_date: a.release_date ?? null,
+      album_type: a.album_type,
+    }))
+}
+
+export async function getSpotifyAlbumFirstTrack(albumId: string): Promise<{ name: string; artist: string } | null> {
+  const token = await getSpotifyClientToken()
+  if (!token) return null
+  const res = await fetch(
+    `https://api.spotify.com/v1/albums/${albumId}/tracks?limit=1`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  )
+  if (!res.ok) return null
+  const data = await res.json()
+  const track = data.items?.[0]
+  if (!track) return null
+  return {
+    name: track.name,
+    artist: track.artists?.map((a: { name: string }) => a.name).join(', ') ?? '',
+  }
+}
+
+export async function searchSpotifyAlbums(query: string): Promise<Array<{ id: string; name: string; cover_art_url: string | null; artist: string }>> {
+  const token = await getSpotifyClientToken()
+  if (!token) return []
+  const res = await fetch(
+    `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=album&limit=10&market=KR`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  )
+  if (!res.ok) return []
+  const data = await res.json()
+  return (data.albums?.items ?? []).map((a: { id: string; name: string; images: { url: string }[]; artists: { name: string }[] }) => ({
     id: a.id,
     name: a.name,
-    image_url: a.images?.[0]?.url ?? null,
-    release_date: a.release_date ?? null,
-    album_type: a.album_type,
+    cover_art_url: a.images?.[0]?.url ?? null,
+    artist: a.artists?.map((ar) => ar.name).join(', ') ?? '',
   }))
 }
 

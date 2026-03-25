@@ -1,4 +1,5 @@
-import { fetchAlbumTracks } from '@/lib/genius'
+import Link from 'next/link'
+import { fetchAlbumTracks, fetchAlbumDetail } from '@/lib/genius'
 
 interface Props {
   albumId: string
@@ -6,31 +7,57 @@ interface Props {
 }
 
 export async function AlbumTrackList({ albumId, currentGeniusId }: Props) {
-  const tracks = await fetchAlbumTracks(albumId)
+  const [tracks, album] = await Promise.all([
+    fetchAlbumTracks(albumId),
+    fetchAlbumDetail(albumId),
+  ])
   if (tracks.length === 0) return null
 
   return (
     <section style={{ padding: '32px 0', borderTop: '1px solid var(--border)' }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '16px' }}>
-        <h2
-          style={{
-            margin: 0,
-            fontSize: 'var(--text-lg)',
-            fontWeight: 400,
-            color: 'var(--text)',
-          }}
-        >
-          앨범 수록곡
-        </h2>
-        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-faint)' }}>
+
+      {/* Album header card */}
+      <Link
+        href={`/albums/${albumId}`}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '16px',
+          padding: '16px', marginBottom: '12px',
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
+          borderRadius: 'var(--r-lg)',
+          textDecoration: 'none', transition: 'background 150ms',
+        }}
+        className="hover-row"
+      >
+        {album?.cover_art_url && (
+          <img
+            src={album.cover_art_url}
+            alt=""
+            style={{
+              width: '56px', height: '56px',
+              borderRadius: 'var(--r-sm)', objectFit: 'cover', flexShrink: 0,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+            }}
+          />
+        )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            앨범
+          </p>
+          <p style={{ margin: '2px 0 0', fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {album?.name ?? '앨범'}
+          </p>
+        </div>
+        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-faint)', flexShrink: 0 }}>
           {tracks.length}곡
         </span>
-      </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
+          <path d="M9 18l6-6-6-6"/>
+        </svg>
+      </Link>
 
+      {/* Track list */}
       <div style={{
-        background: 'var(--bg-surface)',
         borderRadius: 'var(--r-lg)',
-        border: '1px solid var(--border)',
         overflow: 'hidden',
       }}>
         {tracks.map((track, idx) => {
@@ -44,10 +71,10 @@ export async function AlbumTrackList({ albumId, currentGeniusId }: Props) {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '14px',
-                padding: '10px 16px',
+                padding: '8px 12px',
                 textDecoration: 'none',
                 transition: 'background 120ms',
-                borderBottom: idx < tracks.length - 1 ? '1px solid var(--border)' : 'none',
+                borderRadius: 'var(--r-sm)',
                 background: isCurrent ? 'var(--accent-bg)' : 'transparent',
               }}
             >
@@ -81,17 +108,6 @@ export async function AlbumTrackList({ albumId, currentGeniusId }: Props) {
                   track.track_number
                 )}
               </span>
-
-              {track.image_url && (
-                <img
-                  src={track.image_url}
-                  alt=""
-                  style={{
-                    width: '36px', height: '36px',
-                    borderRadius: 'var(--r-sm)', objectFit: 'cover', flexShrink: 0,
-                  }}
-                />
-              )}
 
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p

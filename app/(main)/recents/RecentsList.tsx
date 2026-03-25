@@ -9,7 +9,20 @@ interface Entry {
   title: string
   artist: string
   image_url: string | null
+  type: string
   updatedAt: string
+}
+
+function getEntryHref(entry: Entry): string {
+  if (entry.type === 'artist') return `/artists/${entry.genius_id.replace('artist:', '')}`
+  if (entry.type === 'album') return `/albums/${entry.genius_id.replace('album:', '')}`
+  return `/songs/${entry.genius_id}`
+}
+
+function getEntryLabel(entry: Entry): string {
+  if (entry.type === 'artist') return '아티스트'
+  if (entry.type === 'album') return entry.artist ? `앨범 · ${entry.artist}` : '앨범'
+  return entry.artist
 }
 
 function formatDateGroup(iso: string): string {
@@ -153,21 +166,38 @@ export function RecentsList({ initialEntries, initialCursor }: Props) {
                 }}
               >
                 <Link
-                  href={`/songs/${entry.genius_id}`}
+                  href={getEntryHref(entry)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '14px',
                     flex: 1, minWidth: 0, textDecoration: 'none',
                   }}
                 >
-                  {entry.image_url && (
-                    <img src={entry.image_url} alt="" style={{ width: '44px', height: '44px', borderRadius: 'var(--r-sm)', objectFit: 'cover', flexShrink: 0 }} />
+                  {entry.image_url ? (
+                    <img
+                      src={entry.image_url} alt=""
+                      style={{
+                        width: '44px', height: '44px',
+                        borderRadius: entry.type === 'artist' ? '50%' : 'var(--r-sm)',
+                        objectFit: 'cover', flexShrink: 0,
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: '44px', height: '44px',
+                      borderRadius: entry.type === 'artist' ? '50%' : 'var(--r-sm)',
+                      background: 'var(--bg-subtle)', flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: 'var(--text-faint)', fontSize: '16px',
+                    }}>
+                      {entry.type === 'artist' ? '♫' : '♪'}
+                    </div>
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ margin: '0 0 2px', fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {entry.title}
                     </p>
                     <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {entry.artist}
+                      {getEntryLabel(entry)}
                     </p>
                   </div>
                 </Link>

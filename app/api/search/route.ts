@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
-import { geniusFetchRaw } from '@/lib/genius'
+import { geniusFetchRaw, searchSongs, fetchSongDetail } from '@/lib/genius'
+import { searchSpotifyAlbums, getSpotifyAlbumFirstTrack } from '@/lib/spotify'
 import type { GeniusSearchResult } from '@/types'
 
 export const dynamic = 'force-dynamic'
@@ -45,23 +46,48 @@ export async function GET(request: NextRequest) {
   }
 
   if (type === 'albums') {
-    const seen = new Set<string>()
-    const items: Array<{ id: string; name: string; cover_art_url: string | null; artist: string }> = []
+    const spotifyAlbums = await searchSpotifyAlbums(q)
 
-    for (const hit of rawHits) {
-      const song = hit.result
-      if (!song.album) continue
-      const albumId = String(song.album.id)
-      if (seen.has(albumId)) continue
-      seen.add(albumId)
-      items.push({
-        id: albumId,
-        name: song.album.name,
-        cover_art_url: song.album.cover_art_url ?? null,
-        artist: song.artist_names,
+    // Match each Spotify album to a Genius album ID in parallel
+    // For each Spotify album: get first track → search Genius → get album ID
+    const matched = await Promise.all(
+      spotifyAlbums.map(async (sa) => {
+        try {
+          // 1. Get first track from Spotify album
+          const track = await getSpotifyAlbumFirstTrack(sa.id)
+          if (!track) return null
+
+          // 2. Search Genius for that track
+          const songs = await searchSongs(`${track.name} ${track.artist}`, 1, 5)
+          if (songs.length === 0) return null
+
+          // 3. Find a matching song (artist name check)
+          const artistLower = sa.artist.toLowerCase()
+          const matchedSong = songs.find((s) => s.artist.toLowerCase().includes(artistLower))
+          if (!matchedSong) return null
+
+          // 4. Get song detail → extract album ID
+          const detail = await fetchSongDetail(matchedSong.genius_id)
+          if (!detail?.genius_album_id) return null
+
+          return {
+            id: detail.genius_album_id,
+            name: sa.name,
+            cover_art_url: sa.cover_art_url,
+            artist: sa.artist,
+          }
+        } catch { return null }
       })
-    }
-    return Response.json({ items, hasMore })
+    )
+
+    const seen = new Set<string>()
+    const items = matched.filter((a): a is NonNullable<typeof a> => {
+      if (!a || seen.has(a.id)) return false
+      seen.add(a.id)
+      return true
+    })
+
+    return Response.json({ items, hasMore: false })
   }
 
   return Response.json({ items: [], hasMore: false })

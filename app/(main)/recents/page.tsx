@@ -15,7 +15,7 @@ export default async function RecentsPage() {
     where: { userId: session.user.id },
     orderBy: { updatedAt: 'desc' },
     take: PAGE_SIZE + 1,
-    select: { id: true, genius_id: true, title: true, artist: true, image_url: true, updatedAt: true },
+    select: { id: true, genius_id: true, title: true, artist: true, image_url: true, type: true, updatedAt: true },
   })
 
   const hasMore = rows.length > PAGE_SIZE
@@ -28,6 +28,7 @@ export default async function RecentsPage() {
     title: e.title,
     artist: e.artist,
     image_url: e.image_url,
+    type: e.type,
     updatedAt: e.updatedAt.toISOString(),
   }))
 

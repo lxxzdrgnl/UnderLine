@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     orderBy: { updatedAt: 'desc' },
     take: limit + 1,
     ...(cursor && { cursor: { id: cursor }, skip: 1 }),
-    select: { id: true, genius_id: true, title: true, artist: true, image_url: true, updatedAt: true },
+    select: { id: true, genius_id: true, title: true, artist: true, image_url: true, type: true, updatedAt: true },
   })
 
   const hasMore = rows.length > limit
@@ -32,13 +32,13 @@ export async function POST(request: NextRequest) {
   const { session, error } = await requireSession(request)
   if (error) return error
 
-  const { genius_id, title, artist, image_url } = await request.json()
+  const { genius_id, title, artist, image_url, type } = await request.json()
   if (!genius_id) return Response.json({ error: 'genius_id required' }, { status: 400 })
 
   await prisma.searchHistory.upsert({
     where: { userId_genius_id: { userId: session.user.id, genius_id } },
-    create: { userId: session.user.id, genius_id, title, artist, image_url: image_url ?? null },
-    update: { title, artist, image_url: image_url ?? null },
+    create: { userId: session.user.id, genius_id, title, artist: artist ?? '', image_url: image_url ?? null, type: type ?? 'song' },
+    update: { title, artist: artist ?? '', image_url: image_url ?? null, type: type ?? 'song' },
   })
   return Response.json({ ok: true })
 }
