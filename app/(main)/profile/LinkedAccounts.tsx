@@ -40,6 +40,18 @@ export default function LinkedAccounts() {
     window.location.href = `/api/oauth/${provider}`
   }
 
+  const handleUnlink = async (provider: string) => {
+    if (!confirm(`${provider} 연동을 해제할까요?`)) return
+    const res = await fetch(`/api/user/accounts?provider=${provider}`, { method: 'DELETE' })
+    if (res.ok) {
+      setConnected((prev) => prev.filter((p) => p !== provider))
+      setMsg('연동이 해제되었습니다. 새 scope로 다시 연결해주세요.')
+    } else {
+      const data = await res.json().catch(() => ({}))
+      setMsg(data.message || '해제 실패')
+    }
+  }
+
   if (loading) return <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>로딩 중...</p>
 
   return (
@@ -65,7 +77,23 @@ export default function LinkedAccounts() {
               {label}
             </span>
             {isLinked ? (
-              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>연결됨</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>연결됨</span>
+                <button
+                  onClick={() => handleUnlink(id)}
+                  style={{
+                    fontSize: 11,
+                    padding: '3px 8px',
+                    borderRadius: 'var(--r-sm)',
+                    border: '1px solid var(--border)',
+                    background: 'transparent',
+                    color: 'var(--text-faint)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  해제
+                </button>
+              </div>
             ) : (
               <button
                 onClick={() => handleLink(id)}

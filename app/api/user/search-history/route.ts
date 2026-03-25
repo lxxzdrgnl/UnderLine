@@ -4,18 +4,27 @@ import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-// GET /api/search-history — 최근 10개
-export async function GET() {
+// GET /api/search-history?cursor=xxx&limit=20
+export async function GET(request: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return Response.json([], { status: 200 })
+
+  const cursor = request.nextUrl.searchParams.get('cursor')
+  const limit = Math.min(Number(request.nextUrl.searchParams.get('limit')) || 20, 50)
 
   const rows = await prisma.searchHistory.findMany({
     where: { userId: session.user.id },
     orderBy: { updatedAt: 'desc' },
-    take: 10,
-    select: { id: true, genius_id: true, title: true, artist: true, image_url: true },
+    take: limit + 1,
+    ...(cursor && { cursor: { id: cursor }, skip: 1 }),
+    select: { id: true, genius_id: true, title: true, artist: true, image_url: true, updatedAt: true },
   })
-  return Response.json(rows)
+
+  const hasMore = rows.length > limit
+  const items = hasMore ? rows.slice(0, limit) : rows
+  const nextCursor = hasMore ? items[items.length - 1].id : null
+
+  return Response.json({ items, nextCursor })
 }
 
 // POST /api/search-history — upsert (중복이면 created_at 갱신해서 상단으로)

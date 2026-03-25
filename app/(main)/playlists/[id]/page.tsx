@@ -42,6 +42,20 @@ export default async function PlaylistDetailPage({ params }: Props) {
   return (
     <div className="page-enter" style={{ paddingBottom: '64px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '32px 0 28px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <a
+          href="/playlists"
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: '32px', height: '32px', borderRadius: '50%',
+            background: 'var(--bg-subtle)', color: 'var(--text-muted)',
+            textDecoration: 'none', fontSize: '18px', flexShrink: 0,
+            transition: 'background var(--dur)',
+          }}
+          className="hover-row"
+        >
+          ←
+        </a>
         <h1 style={{
           margin: 0,
           fontFamily: "'DM Serif Display', Georgia, serif",
@@ -51,8 +65,9 @@ export default async function PlaylistDetailPage({ params }: Props) {
         }}>
           {playlist.name}
         </h1>
+        </div>
         {!playlist.isDefault && (
-          <DeletePlaylistButton playlistId={playlist.id} />
+          <DeletePlaylistButton playlistId={playlist.id} playlistName={playlist.name} />
         )}
       </div>
 

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { PlaylistActions } from './PlaylistActions'
+import { DeletePlaylistCardButton } from './DeletePlaylistCardButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -66,37 +67,40 @@ export default async function PlaylistsPage() {
         marginTop: '20px',
       }}>
         {data.map((p) => (
-          <Link
-            key={p.id}
-            href={`/playlists/${p.id}`}
-            className="hover-scale"
-            style={{
-              background: 'var(--bg-surface)',
-              borderRadius: 'var(--r-lg)',
-              padding: '14px',
-              textDecoration: 'none',
-              transition: 'transform var(--dur)',
-            }}
-          >
-            <div style={{
-              width: '100%',
-              aspectRatio: '1 / 1',
-              borderRadius: 'var(--r-md)',
-              overflow: 'hidden',
-              background: 'var(--bg-subtle)',
-              marginBottom: '12px',
-            }}>
-              {p.coverImage && (
-                <img src={p.coverImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              )}
-            </div>
-            <p style={{ margin: '0 0 4px', fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {p.name}
-            </p>
-            <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--text-faint)' }}>
-              {p.songCount}곡
-            </p>
-          </Link>
+          <div key={p.id} className="playlist-card" style={{ position: 'relative' }}>
+            <Link
+              href={`/playlists/${p.id}`}
+              className="hover-scale"
+              style={{
+                display: 'block',
+                background: 'var(--bg-surface)',
+                borderRadius: 'var(--r-lg)',
+                padding: '14px',
+                textDecoration: 'none',
+                transition: 'transform var(--dur)',
+              }}
+            >
+              <div style={{
+                width: '100%',
+                aspectRatio: '1 / 1',
+                borderRadius: 'var(--r-md)',
+                overflow: 'hidden',
+                background: 'var(--bg-subtle)',
+                marginBottom: '12px',
+              }}>
+                {p.coverImage && (
+                  <img src={p.coverImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                )}
+              </div>
+              <p style={{ margin: '0 0 4px', fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {p.name}
+              </p>
+              <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--text-faint)' }}>
+                {p.songCount}곡
+              </p>
+            </Link>
+            {!p.isDefault && <DeletePlaylistCardButton playlistId={p.id} playlistName={p.name} />}
+          </div>
         ))}
       </div>
     </div>

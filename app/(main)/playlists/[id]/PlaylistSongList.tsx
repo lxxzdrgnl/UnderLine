@@ -2,7 +2,6 @@
 
 import { useState, useRef } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 
 interface PlaylistSong {
   playlistSongId: string
@@ -116,7 +115,7 @@ export function PlaylistSongList({ playlistId, initialSongs }: Props) {
           {/* Thumbnail */}
           <Link href={`/songs/${song.geniusId}`} style={{ flexShrink: 0 }}>
             {song.imageUrl ? (
-              <Image
+              <img
                 src={song.imageUrl}
                 alt={song.title}
                 width={44}

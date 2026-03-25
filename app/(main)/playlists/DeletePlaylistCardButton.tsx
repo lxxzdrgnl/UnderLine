@@ -4,34 +4,40 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 
-export function DeletePlaylistButton({ playlistId, playlistName }: { playlistId: string; playlistName: string }) {
+export function DeletePlaylistCardButton({ playlistId, playlistName }: { playlistId: string; playlistName: string }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
+  function handleClick(e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    setOpen(true)
+  }
+
   async function handleDelete() {
     setDeleting(true)
     const res = await fetch(`/api/playlists/${playlistId}`, { method: 'DELETE' })
-    if (res.ok) router.replace('/playlists')
+    if (res.ok) { setOpen(false); router.refresh() }
     else setDeleting(false)
   }
 
   return (
     <>
       <button
-        onClick={() => setOpen(true)}
+        onClick={handleClick}
         style={{
-          padding: '6px 14px',
-          fontSize: 'var(--text-xs)',
-          background: 'none',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--r-md)',
-          color: 'var(--text-faint)',
-          cursor: 'pointer',
+          position: 'absolute', top: '8px', right: '8px',
+          background: 'rgba(0,0,0,0.6)', border: 'none',
+          borderRadius: '50%', width: '24px', height: '24px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', color: 'var(--text-faint)',
+          fontSize: '12px', lineHeight: 1,
+          opacity: 0, transition: 'opacity var(--dur)',
         }}
-        className="hover-row"
+        title="삭제"
       >
-        삭제
+        ✕
       </button>
 
       {open && createPortal(
@@ -63,7 +69,7 @@ export function DeletePlaylistButton({ playlistId, playlistName }: { playlistId:
               플레이리스트 삭제
             </h3>
             <p style={{ margin: '0 0 20px', fontSize: 'var(--text-sm)', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-              <strong>{playlistName}</strong>을(를) 삭제할까요? 이 작업은 되돌릴 수 없어요.
+              <strong>{playlistName}</strong>을(를) 삭제할까요?
             </p>
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
               <button
