@@ -26,6 +26,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, user }) {
       session.user.id = user.id
       session.user.role = (user as unknown as { role: string }).role as import('@/types').Role
+      session.user.image = user.image ?? null
       return session
     },
   },

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 
 const MAX_LENGTH = 20
 
-export function EditNameButton({ currentName }: { currentName: string }) {
+export function EditNameButton({ currentName, currentImage }: { currentName: string; currentImage: string | null }) {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState(currentName)
   const [saving, setSaving] = useState(false)
@@ -78,7 +78,7 @@ export function EditNameButton({ currentName }: { currentName: string }) {
               padding: '32px 28px 20px',
               background: 'linear-gradient(180deg, rgba(80,80,80,0.3) 0%, transparent 100%)',
             }}>
-              {/* Avatar placeholder */}
+              {/* Avatar */}
               <div style={{
                 width: '100px', height: '100px', margin: '0 auto 16px',
                 borderRadius: '50%', overflow: 'hidden',
@@ -86,8 +86,13 @@ export function EditNameButton({ currentName }: { currentName: string }) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '40px', fontWeight: 700, color: 'var(--text-faint)',
                 boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+                flexShrink: 0,
               }}>
-                {trimmed[0]?.toUpperCase() ?? currentName[0]?.toUpperCase() ?? '?'}
+                {currentImage ? (
+                  <img src={currentImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  trimmed[0]?.toUpperCase() ?? currentName[0]?.toUpperCase() ?? '?'
+                )}
               </div>
 
               <h3 style={{

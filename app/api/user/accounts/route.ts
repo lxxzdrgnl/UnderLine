@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     }),
     prisma.account.findMany({
       where: { userId: session.user.id },
-      select: { provider: true },
+      select: { provider: true, email: true, image: true },
     }),
   ])
 
@@ -44,6 +44,6 @@ export async function GET(request: NextRequest) {
       email: user?.email ?? null,
       image: user?.image ?? null,
     },
-    providers: accounts.map((a) => a.provider),
+    providers: accounts.map((a) => ({ provider: a.provider, email: a.email ?? null, image: a.image ?? null })),
   })
 }

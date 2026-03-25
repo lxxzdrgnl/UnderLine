@@ -1,9 +1,11 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
+import Link from 'next/link'
 import LinkedAccounts from './LinkedAccounts'
 import LogoutButton from './LogoutButton'
 import { EditNameButton } from './EditNameButton'
+import { ProfileAvatar } from './ProfileAvatar'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,7 +13,11 @@ export default async function ProfilePage() {
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
-  const songCount = await prisma.song.count()
+  const songCount = await prisma.playlistSong.findMany({
+    where: { playlist: { userId: session.user.id } },
+    select: { songId: true },
+    distinct: ['songId'],
+  }).then((r) => r.length)
   const playlistCount = await prisma.playlist.count({ where: { userId: session.user.id } })
   const historyCount = await prisma.searchHistory.count({ where: { userId: session.user.id } })
 
@@ -22,28 +28,10 @@ export default async function ProfilePage() {
         display: 'flex', alignItems: 'flex-end', gap: '20px',
         padding: '48px 0 28px',
       }}>
-        {session.user.image ? (
-          <img
-            src={session.user.image}
-            alt=""
-            className="profile-avatar"
-            style={{
-              width: '120px', height: '120px', borderRadius: '50%',
-              objectFit: 'cover', flexShrink: 0,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-            }}
-          />
-        ) : (
-          <div className="profile-avatar" style={{
-            width: '120px', height: '120px', borderRadius: '50%', flexShrink: 0,
-            background: 'var(--bg-elevated)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '48px', fontWeight: 700, color: 'var(--text-faint)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-          }}>
-            {session.user.name?.[0]?.toUpperCase() ?? '?'}
-          </div>
-        )}
+        <ProfileAvatar
+          currentImage={session.user.image ?? null}
+          name={session.user.name ?? ''}
+        />
         <div style={{ minWidth: 0, flex: 1 }}>
           <p style={{ margin: '0 0 4px', fontSize: '12px', color: 'var(--text-faint)', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
             프로필
@@ -59,7 +47,7 @@ export default async function ProfilePage() {
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {session.user.name}
             </span>
-            <EditNameButton currentName={session.user.name ?? ''} />
+            <EditNameButton currentName={session.user.name ?? ''} currentImage={session.user.image ?? null} />
           </h1>
           <p style={{ margin: '6px 0 0', fontSize: '13px', color: 'var(--text-faint)' }}>
             {session.user.email}
@@ -74,23 +62,35 @@ export default async function ProfilePage() {
         marginBottom: '28px',
       }}>
         {[
-          { label: '플레이리스트', value: playlistCount },
-          { label: '검색한 곡', value: historyCount },
-          { label: '저장된 곡', value: songCount },
+          { label: '플레이리스트', value: playlistCount, href: '/playlists' },
+          { label: '검색한 곡', value: historyCount, href: '/recents' },
+          { label: '저장된 곡', value: songCount, href: '/playlists' },
         ].map((stat, i) => (
-          <div key={stat.label} style={{ flex: 1, textAlign: 'center', borderLeft: i > 0 ? '1px solid var(--border)' : 'none' }}>
+          <Link
+            key={stat.label}
+            href={stat.href}
+            style={{
+              flex: 1, textAlign: 'center',
+              borderLeft: i > 0 ? '1px solid var(--border)' : 'none',
+              textDecoration: 'none',
+              padding: '4px 0',
+              borderRadius: '4px',
+              transition: 'opacity 150ms',
+            }}
+            className="profile-stat-link"
+          >
             <p style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: 'var(--text)' }}>
               {stat.value}
             </p>
             <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-faint)' }}>
               {stat.label}
             </p>
-          </div>
+          </Link>
         ))}
       </div>
 
       {/* ── Linked accounts ── */}
-      <section style={{ marginBottom: '20px' }}>
+      <section style={{ marginBottom: '32px' }}>
         <h2 style={{
           fontSize: '12px', fontWeight: 700, color: 'var(--text-faint)',
           marginBottom: '12px', letterSpacing: '0.08em', textTransform: 'uppercase',
@@ -101,9 +101,7 @@ export default async function ProfilePage() {
       </section>
 
       {/* ── Logout ── */}
-      <div style={{ paddingTop: '12px' }}>
-        <LogoutButton />
-      </div>
+      <LogoutButton />
     </div>
   )
 }

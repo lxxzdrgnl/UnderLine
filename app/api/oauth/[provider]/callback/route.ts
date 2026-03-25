@@ -110,6 +110,7 @@ export async function GET(
     providerAccountId: profile.providerAccountId,
     type: 'oauth' as const,
     email: profile.email,
+    image: profile.image,
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token ?? null,
     expires_at: tokens.expires_in ? Math.floor(Date.now() / 1000) + tokens.expires_in : null,
@@ -158,6 +159,7 @@ export async function GET(
         access_token: accountData.access_token,
         refresh_token: accountData.refresh_token,
         expires_at: accountData.expires_at,
+        image: accountData.image,
       },
     })
     const res = NextResponse.redirect(destination)

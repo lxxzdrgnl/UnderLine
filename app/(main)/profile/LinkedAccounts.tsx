@@ -26,8 +26,10 @@ const PROVIDERS = [
   },
 ]
 
+type ProviderInfo = { provider: string; email: string | null }
+
 export default function LinkedAccounts() {
-  const [connected, setConnected] = useState<string[]>([])
+  const [connected, setConnected] = useState<ProviderInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState<string | null>(null)
 
@@ -61,7 +63,7 @@ export default function LinkedAccounts() {
     if (!confirm(`${provider} 연동을 해제할까요?`)) return
     const res = await fetch(`/api/user/accounts?provider=${provider}`, { method: 'DELETE' })
     if (res.ok) {
-      setConnected((prev) => prev.filter((p) => p !== provider))
+      setConnected((prev) => prev.filter((p) => p.provider !== provider))
       setMsg('연동이 해제되었습니다.')
     } else {
       const data = await res.json().catch(() => ({}))
@@ -88,7 +90,8 @@ export default function LinkedAccounts() {
         </p>
       )}
       {PROVIDERS.map(({ id, label, icon }) => {
-        const isLinked = connected.includes(id)
+        const info = connected.find((c) => c.provider === id)
+        const isLinked = !!info
         return (
           <div
             key={id}
@@ -100,11 +103,20 @@ export default function LinkedAccounts() {
             }}
           >
             <div style={{ flexShrink: 0 }}>{icon}</div>
-            <div style={{ flex: 1 }}>
-              <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>{label}</p>
-              <p style={{ margin: 0, fontSize: '12px', color: isLinked ? 'var(--accent)' : 'var(--text-faint)' }}>
-                {isLinked ? '연결됨' : '연결 안 됨'}
-              </p>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>{label}</p>
+                {isLinked && (
+                  <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 500 }}>연결됨</span>
+                )}
+              </div>
+              {isLinked && info.email ? (
+                <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {info.email}
+                </p>
+              ) : !isLinked ? (
+                <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--text-faint)' }}>연결 안 됨</p>
+              ) : null}
             </div>
             {isLinked ? (
               <button

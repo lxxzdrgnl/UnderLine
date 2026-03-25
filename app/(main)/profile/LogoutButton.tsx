@@ -6,17 +6,21 @@ export default function LogoutButton() {
   return (
     <button
       onClick={() => signOut({ callbackUrl: '/login' })}
+      className="logout-btn"
       style={{
-        padding: '10px 24px',
-        borderRadius: '20px',
-        fontSize: '13px',
-        fontWeight: 700,
+        display: 'block',
+        width: '100%',
+        padding: '12px',
+        background: 'var(--bg-subtle)',
+        border: '1px solid var(--border-strong)',
+        borderRadius: 'var(--r-md)',
         cursor: 'pointer',
-        border: '1px solid rgba(255,255,255,0.15)',
-        background: 'transparent',
-        color: 'var(--text)',
+        fontSize: '13px',
+        fontWeight: 600,
+        color: 'var(--text-muted)',
         letterSpacing: '0.02em',
-        transition: 'all 150ms',
+        transition: 'background 150ms, color 150ms',
+        textAlign: 'center',
       }}
     >
       로그아웃

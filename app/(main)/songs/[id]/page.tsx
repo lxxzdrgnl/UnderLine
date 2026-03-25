@@ -1,8 +1,7 @@
 import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
-import { fetchSongDetail } from '@/lib/genius'
 import { stripRomanized, isGeniusRomanizations } from '@/lib/strings'
+import { getOrCreateSong } from '@/lib/songs'
 import { LyricsView } from '@/components/lyrics/LyricsView'
 import { AlbumTrackList } from '@/components/song/AlbumTrackList'
 import { FavoriteButton } from '@/components/playlist/FavoriteButton'
@@ -15,75 +14,6 @@ interface Props {
 function getYouTubeId(url: string): string | null {
   const m = url.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/)
   return m?.[1] ?? null
-}
-
-async function getSong(id: string) {
-  // 1. Try by CUID or Genius ID
-  let song = await prisma.song.findUnique({ where: { id } })
-    ?? await prisma.song.findUnique({ where: { genius_id: id } })
-
-  // 2. If found but missing detail → fetch and fill
-  if (song && !song.description) {
-    const detail = await fetchSongDetail(song.genius_id)
-    if (detail) {
-      song = await prisma.song.update({
-        where: { id: song.id },
-        data: {
-          album: detail.album,
-          album_image_url: detail.album_image_url,
-          release_date: detail.release_date,
-          description: detail.description,
-          spotify_url: detail.spotify_url,
-          youtube_url: detail.youtube_url,
-          apple_music_url: detail.apple_music_url,
-          genius_artist_id: detail.genius_artist_id,
-          genius_album_id: detail.genius_album_id,
-          featured_artists: detail.featured_artists ?? [],
-        },
-      })
-    }
-  }
-  if (song) return song
-
-  // 3. Not in DB — numeric Genius ID → fetch + create
-  if (/^\d+$/.test(id)) {
-    const detail = await fetchSongDetail(id)
-    if (!detail) return null
-    song = await prisma.song.upsert({
-      where: { genius_id: id },
-      create: {
-        genius_id: id,
-        title: '(제목 없음)',
-        artist: '',
-        genius_path: '',
-        album: detail.album,
-        album_image_url: detail.album_image_url,
-        release_date: detail.release_date,
-        description: detail.description,
-        spotify_url: detail.spotify_url,
-        youtube_url: detail.youtube_url,
-        apple_music_url: detail.apple_music_url,
-        genius_artist_id: detail.genius_artist_id,
-        genius_album_id: detail.genius_album_id,
-        featured_artists: detail.featured_artists ?? [],
-      },
-      update: {
-        album: detail.album,
-        album_image_url: detail.album_image_url,
-        release_date: detail.release_date,
-        description: detail.description,
-        spotify_url: detail.spotify_url,
-        youtube_url: detail.youtube_url,
-        apple_music_url: detail.apple_music_url,
-        genius_artist_id: detail.genius_artist_id,
-        genius_album_id: detail.genius_album_id,
-        featured_artists: detail.featured_artists ?? [],
-      },
-    })
-    return song
-  }
-
-  return null
 }
 
 function TrackListSkeleton() {
@@ -128,7 +58,7 @@ function parseFeaturedArtists(raw: unknown): FeaturedArtist[] {
 
 export default async function SongPage({ params }: Props) {
   const { id } = await params
-  const song = await getSong(id)
+  const song = await getOrCreateSong(id)
   if (!song) notFound()
 
   const ytId = song.youtube_url ? getYouTubeId(song.youtube_url) : null

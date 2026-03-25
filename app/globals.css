@@ -196,6 +196,11 @@ h1, h2, h3 {
 .nav-icon-btn:hover { background: rgba(255,255,255,0.08); color: var(--text) !important; opacity: 1 !important; }
 .nav-dropdown-item:hover { background: rgba(255,255,255,0.07); color: var(--text) !important; }
 .hover-dim:hover  { opacity: 0.8; }
+.profile-stat-link:hover p { color: var(--text) !important; }
+.profile-stat-link:hover { opacity: 0.8; }
+.logout-btn:hover { background: var(--bg-elevated) !important; color: var(--text) !important; }
+.profile-avatar-btn:hover .profile-avatar-overlay { opacity: 1 !important; }
+.avatar-option-btn:hover { border-color: var(--border-strong) !important; background: var(--bg-subtle) !important; }
 .hover-scale:hover { transform: scale(1.02); }
 .playlist-card:hover button { opacity: 1 !important; }
 .playlist-card-link:hover { background: var(--bg-subtle) !important; }

@@ -38,6 +38,10 @@ export async function searchSongs(query: string, page = 1, perPage = 10): Promis
 }
 
 export interface SongDetail {
+  title: string
+  artist: string
+  image_url: string | null
+  genius_path: string
   album: string | null
   album_image_url: string | null
   release_date: string | null
@@ -88,6 +92,10 @@ export async function fetchSongDetail(geniusId: string): Promise<SongDetail | nu
     const rawAlbum = song.album?.name ?? null
 
     return {
+      title: song.title ?? '',
+      artist: song.primary_artist?.name ?? '',
+      image_url: song.song_art_image_thumbnail_url ?? song.header_image_thumbnail_url ?? null,
+      genius_path: song.path ?? '',
       album: rawAlbum ? cleanRomanizedAlbum(rawAlbum) || null : null,
       album_image_url: song.album?.cover_art_url ?? null,
       release_date: song.release_date_for_display ?? null,
