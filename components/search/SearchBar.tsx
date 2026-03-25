@@ -42,6 +42,7 @@ export function SearchBar({ isLoggedIn = false, onOpenChange }: Props) {
   const router = useRouter()
 
   const showHistory = isFocused && query.trim().length < 2 && history.length > 0
+  const showResults = isFocused && !showHistory && results.length > 0
 
   // ── History: load ──────────────────────────────────────
   const loadHistory = useCallback(async () => {
@@ -184,180 +185,216 @@ export function SearchBar({ isLoggedIn = false, onOpenChange }: Props) {
     router.push(`/songs/${item.genius_id}`)
   }
 
-  // ── Dropdown shared styles ─────────────────────────────
-  const dropdownStyle: React.CSSProperties = {
-    position: 'absolute',
-    top: 'calc(100% + 6px)',
-    left: 0,
-    right: 0,
-    zIndex: 50,
-    background: 'var(--bg-surface)',
-    border: '1px solid var(--border)',
-    borderRadius: 'var(--r-md)',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-    listStyle: 'none',
-    margin: 0,
-    padding: 0,
-    maxHeight: '360px',
-    overflowY: 'auto',
-  }
-
-  const rowStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    padding: '10px 16px',
-    cursor: 'pointer',
-    borderBottom: '1px solid var(--border)',
-    transition: 'background 120ms',
-  }
+  const isOpen = showHistory || showResults || loading
 
   return (
-    <div style={{ position: 'relative', width: '100%', maxWidth: '640px' }}>
-      <input
-        type="text"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        onFocus={() => {
-          if (blurTimerRef.current) clearTimeout(blurTimerRef.current)
-          setIsFocused(true)
-          onOpenChange?.(true)
-        }}
-        onBlur={() => {
-          blurTimerRef.current = setTimeout(() => {
-            setIsFocused(false)
-            onOpenChange?.(false)
-          }, 150)
-        }}
-        placeholder="어떤 곡의 숨겨진 의미가 궁금하신가요?"
-        style={{
-          width: '100%',
-          borderRadius: 'var(--r-md)',
-          border: '1px solid var(--border)',
-          background: 'var(--bg-surface)',
-          color: 'var(--text)',
-          padding: '14px 20px',
-          fontSize: '15px',
-          outline: 'none',
-          transition: 'border-color 150ms',
-        }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = 'var(--border-strong)' }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = isFocused ? 'var(--accent)' : 'var(--border)' }}
-      />
+    <div style={{ position: 'relative', width: '100%', maxWidth: '640px', zIndex: 50 }}>
+      {/* ── Search input ── */}
+      <div style={{
+        position: 'relative',
+        borderRadius: isOpen ? '8px 8px 0 0' : '8px',
+        background: 'var(--bg-surface)',
+        border: `1px solid ${isFocused ? 'rgba(255,255,255,0.12)' : 'var(--border)'}`,
+        borderBottom: isOpen ? 'none' : undefined,
+        transition: 'border-color 200ms, border-radius 150ms',
+      }}>
+        {/* Search icon */}
+        <svg
+          width="18" height="18" viewBox="0 0 24 24" fill="none"
+          style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+        >
+          <circle cx="10.5" cy="10.5" r="6.5" stroke={isFocused ? 'var(--text)' : 'var(--text-faint)'} strokeWidth="2"/>
+          <path d="M15.5 15.5L20 20" stroke={isFocused ? 'var(--text)' : 'var(--text-faint)'} strokeWidth="2" strokeLinecap="round"/>
+        </svg>
 
-      {loading && (
-        <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', color: 'var(--text-faint)' }}>
-          검색 중…
-        </div>
-      )}
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => {
+            if (blurTimerRef.current) clearTimeout(blurTimerRef.current)
+            setIsFocused(true)
+            onOpenChange?.(true)
+          }}
+          onBlur={() => {
+            blurTimerRef.current = setTimeout(() => {
+              setIsFocused(false)
+              onOpenChange?.(false)
+            }, 200)
+          }}
+          placeholder="어떤 곡의 숨겨진 의미가 궁금하신가요?"
+          style={{
+            width: '100%',
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--text)',
+            padding: '14px 44px 14px 46px',
+            fontSize: '14px',
+            outline: 'none',
+            fontWeight: 500,
+          }}
+        />
 
-      {/* ── History dropdown ── */}
-      {showHistory && (
-        <ul style={dropdownStyle}>
-          <li style={{ padding: '8px 16px 6px', borderBottom: '1px solid var(--border)' }}>
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-faint)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-              최근 검색
-            </span>
-          </li>
-          {history.map((item) => (
-            <li
-              key={item.genius_id}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => handleHistorySelect(item)}
-              style={rowStyle}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLLIElement).style.background = 'var(--bg-subtle)' }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLLIElement).style.background = 'transparent' }}
-            >
-              {item.image_url ? (
-                <img
-                  src={item.image_url}
-                  alt=""
-                  style={{ width: '36px', height: '36px', borderRadius: 'var(--r-sm)', objectFit: 'cover', flexShrink: 0 }}
-                />
-              ) : (
-                <div style={{ width: '36px', height: '36px', borderRadius: 'var(--r-sm)', background: 'var(--bg-elevated)', flexShrink: 0 }} />
-              )}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: 0, fontWeight: 500, fontSize: '14px', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {item.title}
-                </p>
-                <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {item.artist}
-                </p>
-              </div>
-              <button
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={(e) => deleteHistory(item.genius_id, e)}
-                style={{
-                  flexShrink: 0,
-                  width: '24px',
-                  height: '24px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: 'transparent',
-                  border: 'none',
-                  borderRadius: '50%',
-                  cursor: 'pointer',
-                  color: 'var(--text-faint)',
-                  fontSize: '16px',
-                  lineHeight: 1,
-                  padding: 0,
-                  transition: 'background 120ms, color 120ms',
-                }}
-                onMouseEnter={(e) => {
-                  const el = e.currentTarget as HTMLButtonElement
-                  el.style.background = 'var(--bg-elevated)'
-                  el.style.color = 'var(--text)'
-                }}
-                onMouseLeave={(e) => {
-                  const el = e.currentTarget as HTMLButtonElement
-                  el.style.background = 'transparent'
-                  el.style.color = 'var(--text-faint)'
-                }}
-                title="삭제"
-              >
-                ×
-              </button>
+        {/* Loading indicator */}
+        {loading && (
+          <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)' }}>
+            <div className="spinner-sm" />
+          </div>
+        )}
+
+        {/* Clear button */}
+        {query.length > 0 && !loading && (
+          <button
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => { setQuery(''); setResults([]) }}
+            style={{
+              position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+              background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%',
+              width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', color: 'var(--text-muted)', fontSize: '14px', lineHeight: 1,
+              transition: 'background 120ms',
+            }}
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
+      {/* ── Dropdown ── */}
+      {isOpen && (
+        <ul
+          ref={showResults ? dropdownRef : undefined}
+          onMouseDown={(e) => e.preventDefault()}
+          onScroll={showResults ? handleDropdownScroll : undefined}
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            zIndex: 50,
+            background: 'var(--bg-surface)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            borderTop: 'none',
+            borderRadius: '0 0 8px 8px',
+            boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
+            listStyle: 'none',
+            margin: 0,
+            padding: 0,
+            maxHeight: '380px',
+            overflowY: 'auto',
+            transformOrigin: 'top',
+            animation: 'dropdown-in 150ms var(--ease) both',
+          }}
+        >
+          {/* Loading state */}
+          {loading && (
+            <li style={{ padding: '24px', textAlign: 'center' }}>
+              <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-faint)' }}>검색 중...</p>
             </li>
-          ))}
-        </ul>
-      )}
+          )}
 
-      {/* ── Search results dropdown ── */}
-      {isFocused && !showHistory && results.length > 0 && (
-        <ul ref={dropdownRef} onScroll={handleDropdownScroll} style={dropdownStyle}>
-          {results.map((r) => (
+          {/* History */}
+          {showHistory && (
+            <>
+              <li style={{ padding: '12px 16px 8px' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-faint)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 700 }}>
+                  최근 검색
+                </span>
+              </li>
+              {history.map((item) => (
+                <li
+                  key={item.genius_id}
+                  onClick={() => handleHistorySelect(item)}
+                  className="search-dropdown-row"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '12px',
+                    padding: '8px 16px', cursor: 'pointer',
+                    transition: 'background 80ms',
+                  }}
+                >
+                  {/* Clock icon */}
+                  <div style={{
+                    width: '40px', height: '40px', borderRadius: '4px', flexShrink: 0,
+                    overflow: 'hidden', background: '#333',
+                  }}>
+                    {item.image_url ? (
+                      <img src={item.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)', fontSize: '16px' }}>♪</div>
+                    )}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ margin: 0, fontWeight: 500, fontSize: '14px', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {item.title}
+                    </p>
+                    <p style={{ margin: '1px 0 0', fontSize: '12px', color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {item.artist}
+                    </p>
+                  </div>
+                  <button
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={(e) => deleteHistory(item.genius_id, e)}
+                    className="search-delete-btn"
+                    style={{
+                      flexShrink: 0, width: '28px', height: '28px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'transparent', border: 'none', borderRadius: '50%',
+                      cursor: 'pointer', color: 'var(--text-faint)', fontSize: '14px',
+                      opacity: 0, transition: 'opacity 120ms, background 120ms',
+                    }}
+                    title="삭제"
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </>
+          )}
+
+          {/* Search results */}
+          {showResults && results.map((r, idx) => (
             <li
               key={r.genius_id}
-              onMouseDown={(e) => e.preventDefault()}
               onClick={() => handleSelect(r)}
-              style={rowStyle}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLLIElement).style.background = 'var(--bg-subtle)' }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLLIElement).style.background = 'transparent' }}
+              className="search-dropdown-row"
+              style={{
+                display: 'flex', alignItems: 'center', gap: '12px',
+                padding: '8px 16px', cursor: 'pointer',
+                transition: 'background 80ms',
+              }}
             >
-              {r.image_url && (
-                <img
-                  src={r.image_url}
-                  alt=""
-                  style={{ width: '36px', height: '36px', borderRadius: 'var(--r-sm)', objectFit: 'cover', flexShrink: 0 }}
-                />
-              )}
+              <div style={{
+                width: '40px', height: '40px', borderRadius: '4px', flexShrink: 0,
+                overflow: 'hidden', background: '#333',
+              }}>
+                {r.image_url ? (
+                  <img src={r.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)', fontSize: '16px' }}>♪</div>
+                )}
+              </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: 0, fontWeight: 500, fontSize: '14px', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {r.title}
                 </p>
-                <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {r.artist}
+                <p style={{ margin: '1px 0 0', fontSize: '12px', color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  노래 · {r.artist}
                 </p>
               </div>
               {r.lyrics_status === 'DONE' && (
-                <span style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.04em', color: 'var(--accent)', textTransform: 'uppercase', flexShrink: 0 }}>
-                  완료
+                <span style={{
+                  fontSize: '10px', fontWeight: 700, letterSpacing: '0.05em',
+                  color: 'var(--accent)', flexShrink: 0,
+                  padding: '3px 8px', borderRadius: '10px',
+                  background: 'var(--accent-bg)',
+                }}>
+                  해석 완료
                 </span>
               )}
             </li>
           ))}
+
+          {/* Load more spinner */}
           {loadingMore && (
             <li style={{ display: 'flex', justifyContent: 'center', padding: '12px' }}>
               <div className="spinner-sm" />

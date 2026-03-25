@@ -115,6 +115,11 @@ h1, h2, h3 {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes dropdown-in {
+  from { opacity: 0; transform: scaleY(0.96); }
+  to   { opacity: 1; transform: scaleY(1); }
+}
+
 @keyframes line-in {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -180,6 +185,8 @@ h1, h2, h3 {
 
 /* ─── Hover utilities ───────────────────────────────────── */
 .hover-row:hover  { background: var(--bg-subtle); }
+.search-dropdown-row:hover { background: rgba(255,255,255,0.06); }
+.search-dropdown-row:hover .search-delete-btn { opacity: 1; }
 .hover-dim:hover  { opacity: 0.8; }
 .hover-scale:hover { transform: scale(1.02); }
 .playlist-card:hover button { opacity: 1 !important; }
@@ -199,8 +206,7 @@ header { padding: 0 28px; }
   .main-content { padding: 0 16px; }
   header { padding: 0 16px; }
   .profile-hero { flex-direction: column; align-items: center !important; text-align: center; gap: 16px !important; }
-  .profile-hero > div:last-child { align-items: center; }
-  .profile-hero h1 { font-size: 24px !important; }
+  .profile-hero h1 { font-size: 24px !important; justify-content: center; }
   .profile-avatar { width: 96px !important; height: 96px !important; }
 }
 

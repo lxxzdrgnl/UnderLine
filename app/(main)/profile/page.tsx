@@ -48,20 +48,20 @@ export default async function ProfilePage() {
           <p style={{ margin: '0 0 4px', fontSize: '12px', color: 'var(--text-faint)', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
             프로필
           </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <h1 style={{
-              margin: 0,
-              fontSize: 'clamp(24px, 5vw, 36px)',
-              fontWeight: 700,
-              color: 'var(--text)',
-              fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
-              lineHeight: 1.1,
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>
+          <h1 style={{
+            margin: 0,
+            fontSize: 'clamp(24px, 5vw, 36px)',
+            fontWeight: 700,
+            color: 'var(--text)',
+            fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
+            lineHeight: 1.3,
+            display: 'flex', alignItems: 'center', gap: '8px',
+          }}>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {session.user.name}
-            </h1>
+            </span>
             <EditNameButton currentName={session.user.name ?? ''} />
-          </div>
+          </h1>
           <p style={{ margin: '6px 0 0', fontSize: '13px', color: 'var(--text-faint)' }}>
             {session.user.email}
           </p>

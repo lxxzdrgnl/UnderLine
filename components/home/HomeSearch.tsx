@@ -18,6 +18,8 @@ export function HomeSearch({ isLoggedIn, hasSpotify }: Props) {
         width: '100%',
         maxWidth: '560px',
         animation: 'fade-up 600ms var(--ease) 300ms both',
+        position: 'relative',
+        zIndex: 10,
       }}>
         <Suspense fallback={null}>
           <SearchBar isLoggedIn={isLoggedIn} onOpenChange={setSearchOpen} />
