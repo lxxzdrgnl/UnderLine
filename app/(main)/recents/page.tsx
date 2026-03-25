@@ -33,15 +33,20 @@ export default async function RecentsPage() {
 
   return (
     <div className="page-enter" style={{ paddingBottom: '64px' }}>
-      <h1 style={{
-        margin: '32px 0 28px',
-        fontFamily: "'DM Serif Display', Georgia, serif",
-        fontSize: 'var(--text-2xl)',
-        fontWeight: 400,
-        color: 'var(--text)',
-      }}>
-        Recents
-      </h1>
+      <div style={{ margin: '32px 0 24px' }}>
+        <p style={{ margin: '0 0 4px', fontSize: 'var(--text-xs)', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600 }}>
+          라이브러리
+        </p>
+        <h1 style={{
+          margin: 0,
+          fontFamily: "'DM Serif Display', Georgia, serif",
+          fontSize: 'var(--text-2xl)',
+          fontWeight: 400,
+          color: 'var(--text)',
+        }}>
+          최근 검색
+        </h1>
+      </div>
 
       <RecentsList initialEntries={entries} initialCursor={nextCursor} />
     </div>

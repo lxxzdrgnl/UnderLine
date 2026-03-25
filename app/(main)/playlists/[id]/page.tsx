@@ -71,10 +71,24 @@ export default async function PlaylistDetailPage({ params }: Props) {
         )}
       </div>
 
-      {songs.length === 0 ? (
-        <p style={{ color: 'var(--text-faint)', textAlign: 'center', padding: '60px 0' }}>
-          아직 저장된 곡이 없어요
+      {songs.length > 0 && (
+        <p style={{ margin: '0 0 16px', fontSize: 'var(--text-sm)', color: 'var(--text-faint)' }}>
+          {songs.length}곡
         </p>
+      )}
+
+      {songs.length === 0 ? (
+        <div style={{
+          textAlign: 'center', padding: '60px 20px',
+          background: 'var(--bg-surface)', borderRadius: 'var(--r-lg)',
+        }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-base)', margin: '0 0 4px' }}>
+            아직 저장된 곡이 없어요
+          </p>
+          <p style={{ color: 'var(--text-faint)', fontSize: 'var(--text-sm)', margin: 0 }}>
+            노래 페이지에서 ♥를 눌러 저장해보세요
+          </p>
+        </div>
       ) : (
         <PlaylistSongList playlistId={playlist.id} initialSongs={songs} />
       )}

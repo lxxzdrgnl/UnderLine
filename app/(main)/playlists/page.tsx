@@ -17,7 +17,7 @@ export default async function PlaylistsPage() {
     include: {
       _count: { select: { songs: true } },
       songs: {
-        take: 1,
+        take: 4,
         orderBy: { position: 'asc' },
         include: { song: { select: { image_url: true } } },
       },
@@ -34,65 +34,107 @@ export default async function PlaylistsPage() {
     name: p.name,
     isDefault: p.isDefault,
     songCount: p._count.songs,
-    coverImage: p.songs[0]?.song.image_url ?? null,
+    coverImages: p.songs.map((s) => s.song.image_url).filter(Boolean) as string[],
   }))
 
   return (
     <div className="page-enter" style={{ paddingBottom: '64px' }}>
-      <h1 style={{
-        margin: '32px 0 28px',
-        fontFamily: "'DM Serif Display', Georgia, serif",
-        fontSize: 'var(--text-2xl)',
-        fontWeight: 400,
-        color: 'var(--text)',
+      {/* Header */}
+      <div style={{
+        display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
+        margin: '32px 0 24px', gap: '16px', flexWrap: 'wrap',
       }}>
-        플레이리스트
-      </h1>
-
-      <PlaylistActions
-        count={playlists.length}
-        hasSpotify={!!hasSpotify}
-      />
+        <div>
+          <p style={{ margin: '0 0 4px', fontSize: 'var(--text-xs)', color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600 }}>
+            라이브러리
+          </p>
+          <h1 style={{
+            margin: 0,
+            fontFamily: "'DM Serif Display', Georgia, serif",
+            fontSize: 'var(--text-2xl)',
+            fontWeight: 400,
+            color: 'var(--text)',
+          }}>
+            플레이리스트
+          </h1>
+        </div>
+        <PlaylistActions count={playlists.length} hasSpotify={!!hasSpotify} />
+      </div>
 
       {data.length === 0 && (
-        <p style={{ color: 'var(--text-faint)', textAlign: 'center', padding: '60px 0' }}>
-          찜한 곡이 없어요 — 노래 페이지에서 저장해보세요
-        </p>
+        <div style={{
+          textAlign: 'center', padding: '80px 20px',
+          background: 'var(--bg-surface)', borderRadius: 'var(--r-xl)',
+        }}>
+          <p style={{ fontSize: '32px', margin: '0 0 12px' }}>♪</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-base)', margin: '0 0 4px' }}>
+            아직 플레이리스트가 없어요
+          </p>
+          <p style={{ color: 'var(--text-faint)', fontSize: 'var(--text-sm)', margin: 0 }}>
+            노래 페이지에서 ♥를 눌러 저장해보세요
+          </p>
+        </div>
       )}
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-        gap: '16px',
-        marginTop: '20px',
-      }}>
-        {data.map((p) => (
-          <div key={p.id} className="playlist-card" style={{ position: 'relative' }}>
+      <div className="playlist-grid" style={{ display: 'grid', gap: '12px' }}>
+        {data.map((p, idx) => (
+          <div
+            key={p.id}
+            className="playlist-card"
+            style={{
+              position: 'relative',
+              animation: `fade-up 350ms var(--ease) ${idx * 40}ms both`,
+            }}
+          >
             <Link
               href={`/playlists/${p.id}`}
-              className="hover-scale"
+              className="playlist-card-link"
               style={{
                 display: 'block',
                 background: 'var(--bg-surface)',
                 borderRadius: 'var(--r-lg)',
-                padding: '14px',
+                padding: '12px',
                 textDecoration: 'none',
-                transition: 'transform var(--dur)',
+                transition: 'background 200ms, transform 200ms var(--ease)',
               }}
             >
+              {/* Cover — mosaic if 4 images, single if 1, gradient if 0 */}
               <div style={{
                 width: '100%',
                 aspectRatio: '1 / 1',
                 borderRadius: 'var(--r-md)',
                 overflow: 'hidden',
                 background: 'var(--bg-subtle)',
-                marginBottom: '12px',
+                marginBottom: '10px',
+                position: 'relative',
               }}>
-                {p.coverImage && (
-                  <img src={p.coverImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                {p.coverImages.length >= 4 ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', width: '100%', height: '100%' }}>
+                    {p.coverImages.slice(0, 4).map((url, i) => (
+                      <img key={i} src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ))}
+                  </div>
+                ) : p.coverImages.length > 0 ? (
+                  <img src={p.coverImages[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{
+                    width: '100%', height: '100%',
+                    background: p.isDefault
+                      ? 'linear-gradient(135deg, #1DB954 0%, #191414 100%)'
+                      : 'linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-subtle) 100%)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '28px', color: 'var(--text-faint)',
+                  }}>
+                    {p.isDefault ? '♥' : '♪'}
+                  </div>
                 )}
+
               </div>
-              <p style={{ margin: '0 0 4px', fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+
+              <p style={{
+                margin: '0 0 2px', fontSize: 'var(--text-sm)', fontWeight: 500,
+                color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
                 {p.name}
               </p>
               <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--text-faint)' }}>

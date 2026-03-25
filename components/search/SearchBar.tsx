@@ -360,7 +360,7 @@ export function SearchBar({ isLoggedIn = false, onOpenChange }: Props) {
           ))}
           {loadingMore && (
             <li style={{ display: 'flex', justifyContent: 'center', padding: '12px' }}>
-              <div className="spinner" />
+              <div className="spinner-sm" />
             </li>
           )}
         </ul>

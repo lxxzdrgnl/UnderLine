@@ -17,7 +17,7 @@ export default function LoginPage() {
           style={{
             margin: '0 0 8px',
             fontSize: '26px',
-            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontFamily: "'DM Serif Display', Georgia, serif",
             fontWeight: 400,
             color: 'var(--text)',
           }}
