@@ -28,9 +28,10 @@ export default async function ArtistPage({ params }: Props) {
           display: 'flex',
           alignItems: 'center',
           gap: '28px',
-          padding: '40px 0 32px',
+          padding: '40px 28px 32px',
+          margin: '0 -28px',
           borderBottom: '1px solid var(--border)',
-          background: 'linear-gradient(to bottom, rgba(255,255,255,0.025) 0%, transparent 100%)',
+          background: 'linear-gradient(to bottom, rgba(255,255,255,0.04) 0%, transparent 100%)',
         }}
       >
         {artist.image_url && (

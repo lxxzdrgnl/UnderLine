@@ -29,7 +29,7 @@ export default async function ProfilePage() {
             alt="avatar"
             width={48}
             height={48}
-            style={{ borderRadius: '50%' }}
+            style={{ borderRadius: '50%', objectFit: 'cover', aspectRatio: '1 / 1' }}
           />
         )}
         <div>
