@@ -57,7 +57,6 @@ export default async function ArtistPage({ params }: Props) {
             style={{
               margin: '0 0 12px',
               fontSize: 'clamp(28px, 6vw, 52px)',
-              fontFamily: "'DM Serif Display', Georgia, serif",
               fontWeight: 400,
               color: 'var(--text)',
               letterSpacing: '-0.02em',
@@ -81,7 +80,6 @@ export default async function ArtistPage({ params }: Props) {
             style={{
               margin: '0 0 20px',
               fontSize: 'var(--text-xl)',
-              fontFamily: "'DM Serif Display', Georgia, serif",
               fontWeight: 400,
               color: 'var(--text)',
             }}

@@ -53,7 +53,6 @@ export default async function ProfilePage() {
             fontSize: 'clamp(24px, 5vw, 36px)',
             fontWeight: 700,
             color: 'var(--text)',
-            fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
             lineHeight: 1.3,
             display: 'flex', alignItems: 'center', gap: '8px',
           }}>

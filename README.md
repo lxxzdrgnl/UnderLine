@@ -6,11 +6,19 @@
 ![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o-412991?style=flat-square&logo=openai&logoColor=white)
 ![Prisma](https://img.shields.io/badge/Prisma-7-2D3748?style=flat-square&logo=prisma&logoColor=white)
 ![Genius](https://img.shields.io/badge/Genius-API-FFFF64?style=flat-square&logoColor=black)
+![Spotify](https://img.shields.io/badge/Spotify-API-1DB954?style=flat-square&logo=spotify&logoColor=white)
 
-**가사 한 줄 한 줄의 숨겨진 의미를 찾아드립니다.**
+---
 
-> "번역" (X)
-> "이 줄에서 아티스트가 말하는 건 사실 이거야" (O)
+## Screenshots
+
+| Home | Lyrics |
+|:---:|:---:|
+| ![Home](public/screenshot/home.png) | ![Lyrics](public/screenshot/lyrics.png) |
+
+| Recents | Spotify Import |
+|:---:|:---:|
+| ![Recents](public/screenshot/recents.png) | ![Import](public/screenshot/import.png) |
 
 ---
 
@@ -19,153 +27,6 @@
 - **App**: https://underline.rheon.kr
 - **API Docs**: https://underline.rheon.kr/docs
 - **Health**: https://underline.rheon.kr/api/system/health
-
----
-
-## Features
-
-- **Line-by-line translation** — every lyric translated to Korean in context
-- **AI interpretation** — slang, cultural references, and hidden meanings per line
-- **Genius annotations** — community notes used as source material for GPT
-- **Streaming UX** — results appear line by line as they're generated; instant load on repeat visits
-- **Artist & album pages** — browse an artist's discography or an album's track list; click any track to open it directly
-- **Genius Romanizations support** — Japanese songs listed under Genius Romanizations are automatically resolved to the original Japanese page, so lyrics are always in native script
-- **Spotify integration** — see the song you're currently listening to in the sidebar; link your Spotify account from your profile
-- **Multilingual** — English, Japanese, Spanish, and more; Korean songs skip translation and go straight to interpretation
-- **OAuth login** — Google and Spotify; link both to one account from your profile
-- **Admin panel** — paginated song list, per-song delete, lyrics status reset (ROLE_ADMIN only)
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Framework | Next.js 16 (App Router, Node Runtime) |
-| Language | TypeScript |
-| Styling | Tailwind CSS v4 + CSS custom properties |
-| Database | PostgreSQL 16 + Prisma 7 ORM |
-| Auth | NextAuth.js v5 (Google + Spotify OAuth) |
-| AI | OpenAI GPT-4o (NDJSON streaming) |
-| Lyrics source | Genius API + HTML scraping (Cheerio) |
-| Music | Spotify Web API |
-| API docs | Swagger UI (`/docs`) |
-| Testing | Vitest + jsdom |
-| Deployment | Docker Compose + Nginx |
-
----
-
-## Architecture
-
-```
-Browser
-  │
-  ├── fetch / NDJSON stream
-  │
-Next.js App Router (Node Runtime)
-  ├── middleware.ts            IP-based rate limiting (sliding window)
-  │
-  ├── app/(main)/              UI pages (server + client components)
-  │   ├── page.tsx             Home — search + recent songs
-  │   ├── songs/[id]/          Song detail — header, LyricsView, YouTube, AlbumTrackList
-  │   ├── artists/[id]/        Artist — photo, bio, top 10 songs
-  │   ├── albums/[id]/         Album — cover, full track list
-  │   ├── login/               OAuth login buttons
-  │   ├── profile/             Linked accounts, logout
-  │   └── docs/                Swagger UI
-  │
-  └── app/api/
-        ├── auth/              NextAuth (Google + Spotify)
-        ├── oauth/[provider]/  Custom PKCE OAuth flow
-        ├── songs/             Search, upsert, metadata, NDJSON lyrics stream
-        ├── spotify/           Now playing
-        ├── user/              Search history, linked accounts
-        ├── system/            Health check, debug info
-        ├── admin/             Song management (ROLE_ADMIN)
-        └── docs/              Swagger JSON spec
-  │
-  └── PostgreSQL (Docker)
-```
-
-**Concurrency:** Lyrics generation uses an atomic Prisma `updateMany` lock (`lyrics_status`, `locked_at`, `generation_id`) to prevent duplicate GPT calls under concurrent requests. Stale locks auto-expire after 5 minutes.
-
-**Streaming:** GPT output is streamed as NDJSON — one JSON line per lyric. The client renders each line as it arrives. Cached songs load instantly from DB in the same format.
-
-**Genius Romanizations:** Songs listed under the "Genius Romanizations" artist are detected by path prefix (`/genius-romanizations-`). The scraper follows `song_relationships` to fetch the original Japanese page, and the real artist ID is resolved from the original song's `primary_artist`.
-
-**Caching:** Genius artist and album data is cached via Next.js `fetch` revalidation (albums: 24h, artists: 24h, artist songs: 1h). Search results use a 60s in-memory Map cache.
-
----
-
-## Why No LangChain
-
-LangChain is useful for RAG pipelines, multi-LLM chains, and dynamic agent tool selection. This project does none of that — it's a single GPT-4o call per song with NDJSON streaming. Adding LangChain would only increase bundle size and introduce an abstraction layer that makes streaming and error handling harder to debug. The OpenAI SDK is called directly in `lib/gpt.ts`.
-
-## GPT Prompt Design
-
-Lyrics interpretation is driven by a detailed system prompt in `lib/gpt.ts`. The prompt is structured in two parts.
-
-### Interpretation Rules (rules 1–13)
-
-**Rule 1 — Adaptive tone & register**
-The model first identifies the genre and mood of the song, then selects the appropriate Korean register. Rules are defined per genre:
-- **Hip-Hop / Rap**: 반말 + 거리체 mandatory. Swagger, aggression, and punchlines must land. A "VIBE CHECK" is included — after translating, the model asks "Would a Korean rapper actually say this?" If it sounds like a textbook, it must redo it.
-  - Subgenre-specific layers: Trap (melodic melancholy + flex), UK Drill (cold/menacing, dense UK slang like *mandem*, *ting*, *peng*, *roadman*), Conscious Rap (meaning > flow, decode every allusion)
-- **R&B / Soul**: Sensual and warm. Preserve intimacy.
-- **Pop**: Bright, singable, emotionally accessible.
-- **Ballad**: Lyrical and poetic. Every word carries weight.
-- **Rock / Alternative / Punk**: Raw, rebellious, rough edges are intentional.
-- **K-Pop**: Preserve intentional English code-switching — do not translate stylistic English phrases.
-- **J-Pop / City Pop**: Melancholic, nostalgic, wistful.
-- Plus: EDM, Folk, Metal, Gospel, Latin/Reggaeton, Indie/Lo-fi, Jazz, Country.
-
-**Rule 2 — Multilingual code-switching**
-Translate non-Korean segments. When a foreign word is used for cultural flavor (Drake's French, Cardi B's Spanish), note it in `slang` and translate the meaning — don't transliterate blindly.
-
-**Rule 3 — Contextual metaphors**
-No dictionary-style literal translations. Idioms and metaphors must land naturally in Korean.
-
-**Rule 4 — Slang detection**
-Assumes every word is slang until proven otherwise. Includes a curated reference glossary:
-> `cheese / bread / paper` = 돈 · `whip` = 고급차 · `heat / iron / stick` = 총 · `plug` = 마약상 · `trap` = 마약 판매 거점 · `sauce` = 스타일 · `drip` = 럭셔리 패션 · `function` = 파티 · `ice` = 보석 플렉스 · `mandem` = 패거리 · `Ms / M's` = millions · ...
-
-**Rule 5 — Punchlines & irony**
-Never translate punchlines literally — capture the punch, rhythm, and comedic/aggressive impact. The test: *read it out loud. Does it HIT?*
-
-**Rule 6 — AAVE & double entendres**
-Accurate decoding of AAVE grammar (`he stay flexing`, `finna`, `tryna`, `on sight`). Weapon slang that doubles as sexual/phallic imagery (when context is clearly sexual) is translated at the comedic layer, not the literal weapon layer.
-
-**Rule 6b — Phonetic wordplay & euphemisms**
-Sound-alike substitutes (e.g., "funk" as stand-in for "fuck") are translated at the intended meaning, with the phonetic substitution explained in `slang`.
-
-**Rules 7–12** — Accurate pronouns, Genius annotation priority, preserve proper nouns/brands, consistent repeated lines, rhyme awareness, no censorship (full original intensity).
-
-**Rule 13 — Romaji → Japanese script (mandatory)**
-If input lyrics are romanized Japanese (e.g., `"Mou wasurete shimatta ka na"`), every `original` field must be converted to kanji/hiragana/katakana. This fires before GPT processes the rest of the line. If a single kanji is unknown, hiragana is used for that word — but romaji is never left in the output.
-> `"Mou wasurete shimatta ka na"` → `"もう忘れてしまったかな"`
-
-### Structural Rules (rules 14–16)
-
-| Rule | Applies to | Behavior |
-|---|---|---|
-| 14 | Section tags (`[Verse 1]`, `[Chorus]`, ...) | `original` = tag verbatim, all other fields null |
-| 15 | Blank lines | `original` = `""`, all other fields null |
-| 16 | Completeness | Every line must be processed, no skipping, 1-based sequential numbering |
-
-### Output Format
-
-NDJSON — one JSON object per line, no markdown fences, no preamble. The first character of output must be `{`.
-
-```jsonc
-// One object per lyric line, streamed in order:
-{"line":1,"original":"Bitch, be humble","translation":"씨발년아, 꼬락서니나 봐","slang":null,"explanation":"켄드릭이 허세 부리는 래퍼들을 향해 던지는 직격 한 방."}
-{"line":2,"original":"[Chorus]","translation":null,"slang":null,"explanation":null}
-{"line":3,"original":"","translation":null,"slang":null,"explanation":null}
-```
-
-### Token Limit Handling
-
-GPT-4o has a finite context window. `streamLyricInterpretations` handles truncation automatically: if `finish_reason === "length"`, the generator resumes a new API call from the last confirmed processed line number, passing the remaining lyrics with a line offset instruction. Long songs are processed in multiple passes without data loss.
 
 ---
 
@@ -232,7 +93,120 @@ Open `http://localhost:3000`.
 
 **Spotify app settings** (in Developer Dashboard):
 - Redirect URI: `http://localhost:3000/api/oauth/spotify/callback`
-- Required scopes: `user-read-currently-playing`, `user-read-playback-state`, `user-read-email`
+- Required scopes: `user-read-currently-playing`, `user-read-playback-state`, `user-read-email`, `playlist-read-private`, `playlist-read-collaborative`
+
+---
+
+## Features
+
+### Core
+- **Line-by-line interpretation** — every lyric translated to Korean with slang decoding, cultural references, and hidden meanings
+- **Streaming UX** — results appear line by line via NDJSON; instant load on repeat visits
+- **Auto-translate descriptions** — English song descriptions auto-translated to Korean via GPT-4o-mini, cached in DB (`description_ko`)
+- **Lazy detail loading** — songs store basic info on first encounter; full metadata (album, description, streaming links, featured artists) fetched from Genius on first page visit
+
+### Library
+- **Playlists** — create up to 50 playlists, add/remove songs, drag-and-drop reorder
+- **Playlist covers** — auto-generated 2x2 mosaic from first 4 songs, gradient fallback for empty lists
+- **Favorite button** — save songs to playlists from any song page (heart icon → bottom sheet on mobile, centered modal on desktop)
+- **Spotify import** — browse your Spotify playlists, select one, choose a name, import matching songs via Genius search. Title similarity check prevents irrelevant matches. Only user-owned playlists supported (Spotify 2026 Feb API restriction)
+- **Recents** — date-grouped search history (오늘/어제/날짜) with search filter, cursor-based infinite scroll, per-item delete
+- **Delete playlists** — custom confirmation modal (no browser `confirm()`), available on card hover and detail page
+
+### Search
+- **Home search** — debounced search with unified dropdown (recent history + search results), infinite scroll in dropdown, clear button
+- **Search page** — tabbed search (노래/아티스트/앨범) with page-based infinite scroll via IntersectionObserver
+- **Translation filter** — Genius translation pages (`-translation` path suffix) and Genius translation artists auto-excluded; fetches 3x results to compensate for filtered entries
+- **Genius match validation** — Spotify import validates title similarity to prevent playlist names or unrelated content from being imported as songs
+
+### Discovery
+- **Artist pages** — hero with background breakout, photo, bio, top songs
+- **Album pages** — cover art, full track list in card layout with equalizer animation on current track
+- **Featured artists** — separated from main artist, linked to artist pages, `feat.` inline display
+- **Artist name cleanup** — removes Genius tags like `(KOR)`, `(Ft. ...)` from display; handles nested parentheses
+
+### Integration
+- **Spotify NowPlaying** — currently playing track on home page with progress bar, click to view lyrics
+- **Spotify account management** — link/unlink from profile with Google & Spotify SVG icons
+- **OAuth login** — Google and Spotify; custom PKCE flow for account linking
+- **Genius Romanizations** — Japanese songs auto-resolved to native script via `song_relationships`
+
+### UI/UX
+- **Spotify-inspired design** — dark theme (#121212), green accent (#1DB954), Playfair Display (logo) + IBM Plex Sans (body) typography
+- **Responsive** — mobile-first with adaptive padding (16px mobile / 28px desktop), profile hero stacks vertically on mobile
+- **Bottom sheets** — favorite modal, interpretation panel use slide-up bottom sheets on mobile
+- **Custom modals** — playlist create, delete, Spotify import, nickname edit — all use portal-based modals with blur backdrop
+- **Profile** — large avatar hero, stats bar (playlists/searches/songs), edit nickname (20 char limit with live counter), linked accounts
+- **Navigation** — icon-based nav (search magnifier, user avatar), dropdown with SVG icons and user name
+- **Staggered animations** — playlist cards, search results, dropdown items enter with fade-up delays
+- **Admin panel** — paginated song list, per-song delete, lyrics status reset (ROLE_ADMIN only)
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 16 (App Router, Node Runtime) |
+| Language | TypeScript |
+| Styling | Tailwind CSS v4 + CSS custom properties (inline styles) |
+| Database | PostgreSQL 16 + Prisma 7 ORM |
+| Auth | NextAuth.js v5 (Google + Spotify OAuth) |
+| AI | OpenAI GPT-4o (lyrics) + GPT-4o-mini (translation) |
+| Lyrics source | Genius API + HTML scraping (Cheerio) |
+| Music | Spotify Web API (2026 Feb migration) |
+| API docs | Swagger UI (`/docs`) |
+| Testing | Vitest + jsdom |
+| Deployment | Docker Compose + Nginx |
+
+---
+
+## Architecture
+
+```
+Browser
+  │
+  ├── fetch / NDJSON stream
+  │
+Next.js App Router (Node Runtime)
+  ├── middleware.ts            IP-based rate limiting (sliding window)
+  │
+  ├── app/(main)/              UI pages (server + client components)
+  │   ├── page.tsx             Home — search bar + NowPlaying
+  │   ├── songs/[id]/          Song detail — header, lyrics, YouTube, album tracks
+  │   ├── artists/[id]/        Artist — photo, bio, top songs
+  │   ├── albums/[id]/         Album — cover, track list
+  │   ├── search/              Tabbed search (songs/artists/albums)
+  │   ├── playlists/           Playlist grid + detail with drag reorder
+  │   ├── recents/             Date-grouped search history
+  │   ├── profile/             Stats, linked accounts, edit name
+  │   ├── login/               OAuth login buttons
+  │   └── docs/                Swagger UI
+  │
+  └── app/api/
+        ├── auth/              NextAuth (Google + Spotify)
+        ├── oauth/[provider]/  Custom PKCE OAuth flow
+        ├── songs/             Search, upsert, lyrics stream, translate-description
+        ├── search/            Unified search (songs/artists/albums via Genius)
+        ├── playlists/         CRUD, song management, reorder, Spotify import
+        ├── spotify/           Now playing, playlist list
+        ├── user/              Search history, accounts, profile
+        ├── system/            Health check, debug info
+        ├── admin/             Song management (ROLE_ADMIN)
+        └── docs/              Swagger JSON spec
+  │
+  └── PostgreSQL (Docker)
+```
+
+**Concurrency:** Lyrics generation uses an atomic Prisma `updateMany` lock (`lyrics_status`, `locked_at`, `generation_id`) to prevent duplicate GPT calls under concurrent requests. Stale locks auto-expire after 5 minutes.
+
+**Streaming:** GPT output is streamed as NDJSON — one JSON line per lyric. The client renders each line as it arrives. Cached songs load instantly from DB in the same format.
+
+**Lazy detail loading:** Songs created via search or Spotify import store only basic info (genius_id, title, artist, cover). Full metadata (album, description, streaming links, featured artists) is fetched from Genius on first page visit and cached in DB.
+
+**Description translation:** English descriptions are auto-translated via GPT-4o-mini on first visit. The translation is cached in `description_ko` — subsequent visits return it instantly from the server with no API call.
+
+**Spotify 2026 Feb migration:** Playlist endpoints use `/items` instead of `/tracks`, `item.item` instead of `item.track`. Only user-owned playlists can be imported (Spotify restriction).
 
 ---
 
@@ -241,7 +215,8 @@ Open `http://localhost:3000`.
 ```
 User ──< Account        (one user, many OAuth providers)
 User ──< Session        (NextAuth sessions)
-User ──< SearchHistory  (per-user search history)
+User ──< SearchHistory  (per-user, updatedAt for recency sorting)
+User ──< Playlist ──< PlaylistSong ──> Song
 
 Song ──1 SongLyricsRaw  (cached raw scraped text + Genius annotations)
 Song ──< LyricLine      (interpreted lines: original, translation, slang, explanation)
@@ -258,111 +233,20 @@ OAuthState              (PKCE state tokens, TTL 10 min, auto-purged)
 | `genius_artist_id` | String? | Links to `/artists/[id]` page |
 | `genius_album_id` | String? | Links to `/albums/[id]` page |
 | `featured_artists` | Json? | `Array<{id, name}>` — rendered in song header |
-| `lyrics_status` | Enum | See state machine below |
+| `description` | Text? | English description from Genius |
+| `description_ko` | Text? | Cached Korean translation |
+| `lyrics_status` | Enum | `NONE` → `PROCESSING` → `DONE` |
 | `locked_at` | DateTime? | Set when `PROCESSING` begins; stale after 5 min |
-| `generation_id` | String? | UUID per generation run — used to detect stale writes |
 
-**`LyricsStatus` state machine:**
+**`Playlist` model:**
 
-```
-         first request
-NONE ──────────────────► PROCESSING
-                              │
-              ┌───────────────┤
-              │               │
-         GPT done         GPT error / server crash
-              │               │
-              ▼               ▼
-            DONE           NONE (reset)
-              │
-         re-generate
-         (admin reset)
-              │
-              ▼
-            NONE
-```
+| Field | Type | Purpose |
+|---|---|---|
+| `name` | String | Unique per user |
+| `isDefault` | Boolean | Auto-created "찜한 곡" list, cannot be deleted |
+| `userId_name` | Unique | Prevents duplicate names per user |
 
-Stale lock recovery: if `locked_at` is older than 5 minutes and `lyrics_status` is still `PROCESSING`, the next request treats the lock as expired and re-acquires it via atomic `updateMany`.
-
----
-
-## OAuth Flow
-
-The app uses **two parallel OAuth flows**:
-
-**1. NextAuth (Google login only)**
-Standard NextAuth sign-in flow. Handles session creation and the `User` + `Account` records.
-
-**2. Custom PKCE flow (`/api/oauth/[provider]`)** — used for Spotify and for linking a second provider to an existing account
-
-NextAuth doesn't natively support adding a second OAuth provider to an already-authenticated account ("account linking"). The custom flow handles this:
-
-```
-User clicks "Connect Spotify"
-        │
-        ▼
-GET /api/oauth/spotify?callbackUrl=/profile
-  - Detect session → mode = 'link' (or 'login' if no session)
-  - Generate PKCE verifier + SHA-256 challenge
-  - Store OAuthState { mode, userId, codeVerifier, expiresAt: +10min } in DB
-  - Redirect → Spotify authorization URL (state = OAuthState.id)
-        │
-        ▼
-Spotify redirects → GET /api/oauth/spotify/callback?code=...&state=...
-  - Look up OAuthState by state param (CSRF check — state is a CUID, unguessable)
-  - Exchange code + verifier for access/refresh tokens (PKCE)
-  - mode = 'link': attach new Account to existing User
-  - mode = 'login': find or create User, create session
-  - Delete used OAuthState, redirect to callbackUrl
-```
-
-Why DB-backed state instead of a signed cookie? The state token carries the PKCE verifier which must survive a full browser round-trip to Spotify and back. Storing it in the DB (with 10-minute TTL and auto-purge of expired rows) avoids cookie size limits and makes the verifier server-side-only.
-
----
-
-## Project Structure
-
-```
-app/
-├── api/
-│   ├── admin/songs/          Paginated list, delete, reset (ROLE_ADMIN)
-│   ├── auth/                 NextAuth
-│   ├── docs/                 Swagger JSON
-│   ├── oauth/[provider]/     Custom PKCE OAuth flow
-│   ├── songs/                Search, upsert, metadata, NDJSON lyrics stream
-│   ├── spotify/              Now playing
-│   ├── system/               Health check, debug
-│   └── user/                 Search history, linked accounts
-└── (main)/
-    ├── page.tsx              Home
-    ├── songs/[id]/           Song detail
-    ├── artists/[id]/         Artist page
-    ├── albums/[id]/          Album page
-    ├── login/                OAuth login
-    ├── profile/              Account management
-    └── docs/                 Swagger UI
-
-lib/
-├── prisma.ts                 Singleton DB client
-├── auth.ts                   NextAuth config
-├── auth-guard.ts             requireAdmin + withAdmin HOF
-├── api-error.ts              Structured error response helper
-├── genius.ts                 Genius API client (search, songs, albums, artists)
-├── scraper.ts                Cheerio-based Genius lyrics scraper
-├── gpt.ts                    GPT-4o NDJSON streaming interpreter
-├── lyrics-service.ts         determineLyricsAction (Service Layer)
-├── strings.ts                Shared text utilities (Romanization cleanup)
-├── logger.ts                 Structured JSON logger
-├── rate-limit.ts             In-memory sliding window rate limiter
-├── oauth-providers.ts        OAuth provider configs
-├── pkce.ts                   PKCE code verifier/challenge
-└── spotify.ts                Spotify Web API client
-
-components/
-├── lyrics/                   LyricLine, InterpretationPanel, LyricsView
-├── search/                   SearchBar (debounce, history, keyboard nav)
-└── song/                     AlbumTrackList, NowPlaying
-```
+**`PlaylistSong` model:** Links Song to Playlist with `position` for drag-and-drop ordering.
 
 ---
 
@@ -372,20 +256,71 @@ Interactive docs available at `/docs` (Swagger UI).
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| `GET` | `/api/songs/search?q=` | — | Search songs via Genius (60s cache) |
-| `POST` | `/api/songs` | — | Upsert song metadata to DB |
-| `GET` | `/api/songs/:id` | — | Song metadata |
+| `GET` | `/api/songs/search?q=&page=` | — | Search songs via Genius (paginated, 60s cache) |
+| `POST` | `/api/songs` | — | Create song with basic info (detail lazy-loaded) |
 | `GET` | `/api/songs/:id/lyrics` | — | Lyrics stream (NDJSON) or 202 if generating |
+| `POST` | `/api/songs/:id/translate-description` | — | Translate description to Korean (cached) |
+| `GET` | `/api/search?q=&type=&page=` | — | Unified search: songs, artists, albums |
+| `GET` | `/api/playlists` | Session | List playlists with song count |
+| `POST` | `/api/playlists` | Session | Create playlist (50 limit) |
+| `DELETE` | `/api/playlists/:id` | Session | Delete playlist (not default) |
+| `GET` | `/api/playlists/:id/songs` | Session | Playlist songs ordered by position |
+| `POST` | `/api/playlists/:id/songs` | Session | Add song (idempotent) |
+| `DELETE` | `/api/playlists/:id/songs/:songId` | Session | Remove song |
+| `PUT` | `/api/playlists/:id/songs/reorder` | Session | Bulk reorder |
+| `GET` | `/api/songs/:id/playlists` | Session | Which playlists contain this song |
+| `POST` | `/api/playlists/import/spotify` | Session | Import Spotify playlist |
+| `GET` | `/api/spotify/playlists` | Session | List Spotify playlists |
 | `GET` | `/api/spotify/now-playing` | Session | Currently playing track |
-| `GET` | `/api/user/search-history` | Session | Recent searches |
-| `DELETE` | `/api/user/search-history` | Session | Remove a search history entry |
+| `GET` | `/api/user/search-history?cursor=&limit=` | Session | Paginated search history |
+| `POST` | `/api/user/search-history` | Session | Upsert search history entry |
+| `DELETE` | `/api/user/search-history?genius_id=` | Session | Delete history entry |
 | `GET` | `/api/user/accounts` | Session | Linked OAuth accounts |
+| `DELETE` | `/api/user/accounts?provider=` | Session | Unlink account (min 1 required) |
+| `PATCH` | `/api/user/profile` | Session | Update nickname (20 char limit) |
 | `GET` | `/api/system/health` | — | Health check |
 | `GET` | `/api/admin/songs` | ROLE_ADMIN | Paginated song list |
 | `DELETE` | `/api/admin/songs/:id` | ROLE_ADMIN | Delete song |
-| `POST` | `/api/admin/songs/:id/reset` | ROLE_ADMIN | Reset lyrics status to NONE |
+| `POST` | `/api/admin/songs/:id/reset` | ROLE_ADMIN | Reset lyrics status |
 
 **Rate limits:** 5 req/min on lyrics, 30 req/min on search, 60 req/min default (per IP).
+
+---
+
+## GPT Prompt Design
+
+Lyrics interpretation is driven by a detailed system prompt in `lib/gpt.ts`. The prompt is structured in two parts.
+
+### Interpretation Rules (rules 1–13)
+
+**Rule 1 — Adaptive tone & register**
+The model identifies the genre and mood, then selects the appropriate Korean register:
+- **Hip-Hop / Rap**: 반말 + 거리체. Subgenre layers: Trap (melodic melancholy + flex), UK Drill (cold/menacing, dense UK slang), Conscious Rap (meaning > flow)
+- **R&B / Soul**: Sensual and warm. Preserve intimacy.
+- **Pop**: Bright, singable, emotionally accessible.
+- **Rock / Alternative / Punk**: Raw, rebellious, rough edges intentional.
+- **K-Pop**: Preserve intentional English code-switching.
+- **J-Pop / City Pop**: Melancholic, nostalgic, wistful.
+- Plus: EDM, Folk, Metal, Gospel, Latin, Indie, Jazz, Country.
+
+**Rule 2–6** — Multilingual code-switching, contextual metaphors, slang detection (curated glossary), punchline capture, AAVE decoding, phonetic wordplay.
+
+**Rules 7–12** — Accurate pronouns, Genius annotation priority, preserve proper nouns, consistent repeated lines, rhyme awareness, no censorship.
+
+**Rule 13 — Romaji → Japanese script** — romanized Japanese lyrics auto-converted to kanji/hiragana/katakana.
+
+### Output Format
+
+NDJSON — one JSON object per line, streamed in order:
+
+```jsonc
+{"line":1,"original":"Bitch, be humble","translation":"씨발년아, 꼬락서니나 봐","slang":null,"explanation":"켄드릭이 허세 부리는 래퍼들을 향해 던지는 직격 한 방."}
+{"line":2,"original":"[Chorus]","translation":null,"slang":null,"explanation":null}
+```
+
+### Token Limit Handling
+
+If `finish_reason === "length"`, the generator resumes from the last confirmed line number in a new API call. Long songs are processed in multiple passes without data loss.
 
 ---
 

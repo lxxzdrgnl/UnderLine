@@ -138,7 +138,6 @@ export function RecentsList({ initialEntries, initialCursor }: Props) {
             color: 'var(--text-faint)',
             textTransform: 'uppercase',
             letterSpacing: '0.05em',
-            fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
           }}>
             {label}
           </h2>

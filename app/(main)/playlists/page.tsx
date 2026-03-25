@@ -50,7 +50,6 @@ export default async function PlaylistsPage() {
           </p>
           <h1 style={{
             margin: 0,
-            fontFamily: "'DM Serif Display', Georgia, serif",
             fontSize: 'var(--text-2xl)',
             fontWeight: 400,
             color: 'var(--text)',

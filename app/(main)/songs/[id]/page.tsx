@@ -200,7 +200,6 @@ export default async function SongPage({ params }: Props) {
               style={{
                 margin: '0 0 8px',
                 fontSize: 'clamp(22px, 4vw, 36px)',
-                fontFamily: "'DM Serif Display', Georgia, serif",
                 fontWeight: 400,
                 color: 'var(--text)',
                 lineHeight: 1.15,
@@ -307,7 +306,6 @@ export default async function SongPage({ params }: Props) {
             style={{
               margin: '0 0 16px',
               fontSize: 'var(--text-lg)',
-              fontFamily: "'DM Serif Display', Georgia, serif",
               fontWeight: 400,
               color: 'var(--text)',
             }}

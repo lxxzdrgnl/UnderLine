@@ -16,7 +16,6 @@ export async function AlbumTrackList({ albumId, currentGeniusId }: Props) {
           style={{
             margin: 0,
             fontSize: 'var(--text-lg)',
-            fontFamily: "'DM Serif Display', Georgia, serif",
             fontWeight: 400,
             color: 'var(--text)',
           }}

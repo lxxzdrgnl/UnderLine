@@ -64,7 +64,6 @@ export function DeletePlaylistCardButton({ playlistId, playlistName }: { playlis
           >
             <h3 style={{
               margin: '0 0 8px', fontSize: '15px', fontWeight: 600,
-              color: 'var(--text)', fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
             }}>
               플레이리스트 삭제
             </h3>

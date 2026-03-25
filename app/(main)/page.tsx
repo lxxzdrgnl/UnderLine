@@ -35,9 +35,9 @@ export default async function HomePage() {
       {/* Brand mark */}
       <h1 className="home-brand" style={{
         margin: '0 0 10px',
-        fontFamily: "'DM Serif Display', Georgia, serif",
-        fontWeight: 400,
-        letterSpacing: '-0.03em',
+        fontFamily: 'var(--font-logo)',
+        fontWeight: 'var(--font-logo-weight)' as unknown as number,
+        letterSpacing: 'var(--font-logo-spacing)',
         color: 'var(--text)',
         lineHeight: 1,
         display: 'flex',
@@ -70,6 +70,7 @@ export default async function HomePage() {
       </p>
 
       <HomeSearch isLoggedIn={!!session?.user?.id} hasSpotify={hasSpotify} />
+
     </div>
   )
 }

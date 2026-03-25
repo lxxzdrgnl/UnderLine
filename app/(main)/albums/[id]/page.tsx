@@ -50,7 +50,6 @@ export default async function AlbumPage({ params }: Props) {
             style={{
               margin: '0 0 10px',
               fontSize: 'clamp(22px, 4vw, 40px)',
-              fontFamily: "'DM Serif Display', Georgia, serif",
               fontWeight: 400,
               color: 'var(--text)',
               letterSpacing: '-0.02em',

@@ -28,14 +28,14 @@ export default async function MainLayout({ children }: { children: React.ReactNo
         <Link
           href="/"
           style={{
-            fontSize: '17px',
-            letterSpacing: '-0.03em',
+            fontSize: '19px',
+            letterSpacing: 'var(--font-logo-spacing)',
             color: 'var(--text)',
             textDecoration: 'none',
             display: 'flex',
             alignItems: 'center',
-            fontWeight: 600,
-            fontFamily: "'DM Serif Display', Georgia, serif",
+            fontWeight: 'var(--font-logo-weight)' as unknown as number,
+            fontFamily: 'var(--font-logo)',
           }}
         >
           under

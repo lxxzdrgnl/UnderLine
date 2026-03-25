@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
 /* ─── Design Tokens ────────────────────────────────────── */
@@ -37,6 +37,12 @@
   --r-md: 8px;
   --r-lg: 12px;
   --r-xl: 16px;
+
+  /* Fonts — change here to swap globally */
+  --font-heading: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-logo: 'Playfair Display', Georgia, serif;
+  --font-logo-weight: 400;
+  --font-logo-spacing: -0.02em;
 
   /* Motion */
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
@@ -88,10 +94,10 @@ body {
 }
 
 h1, h2, h3 {
-  font-family: 'DM Serif Display', Georgia, serif;
-  font-weight: 400;
+  font-family: var(--font-heading);
+  font-weight: 700;
   line-height: 1.2;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 /* ─── Scrollbar ─────────────────────────────────────────── */
@@ -219,6 +225,81 @@ header { padding: 0 28px; }
 @media (max-width: 640px) {
   .home-wrap  { padding: 80px 20px 60px; }
   .home-brand { font-size: clamp(52px, 18vw, 72px); }
+}
+
+/* ─── Interpretation panel ─────────────────────────────── */
+.interp-content { padding: 8px 20px 16px; }
+.interp-original {
+  margin: 8px 0 4px;
+  font-size: var(--text-md);   /* 16px — same as lyric lines */
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--text);
+}
+.interp-translation {
+  margin: 0 0 14px;
+  font-size: var(--text-base); /* 15px */
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.interp-card { margin-bottom: 12px; }
+.interp-card:last-child { margin-bottom: 0; }
+.interp-card-label {
+  margin: 0 0 2px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-faint);
+}
+.interp-card-label--slang { color: var(--accent); }
+.interp-card-body {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+.interp-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  font-size: var(--text-sm);
+  color: var(--text-faint);
+  text-align: center;
+}
+
+/* Bottom sheet modal */
+.interp-overlay {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: flex-end;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.interp-sheet {
+  max-height: 75vh; width: 100%;
+  overflow-y: auto;
+  border-radius: 16px 16px 0 0;
+  background: #1a1a1a;
+  box-shadow: 0 -12px 48px rgba(0,0,0,0.4);
+  animation: slide-up 200ms cubic-bezier(0.16,1,0.3,1) both;
+}
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.interp-handle {
+  display: flex; justify-content: center; padding: 10px 0 4px;
+}
+.interp-handle-bar {
+  width: 36px; height: 4px; border-radius: 2px; background: var(--bg-elevated);
+}
+
+/* Mobile adjustments */
+@media (max-width: 640px) {
+  .interp-content { padding: 4px 20px 24px; }
+  .interp-original { font-size: var(--text-base); }  /* 15px */
+  .interp-translation { font-size: var(--text-sm); } /* 13px */
+  .interp-card-body { font-size: var(--text-sm); }   /* 13px */
 }
 
 /* ─── Lyrics layout responsive ─────────────────────────── */

@@ -124,7 +124,6 @@ export function PlaylistActions({ count, hasSpotify }: { count: number; hasSpoti
               <h3 style={{
                 margin: '0 0 4px', fontSize: '22px', fontWeight: 700,
                 color: 'var(--text)', textAlign: 'center',
-                fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
               }}>
                 새 플레이리스트
               </h3>
