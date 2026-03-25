@@ -18,7 +18,7 @@ beforeEach(() => {
 
 describe('GET /api/admin/songs', () => {
   test('returns 401 when not logged in', async () => {
-    vi.mocked(auth).mockResolvedValue(null)
+    vi.mocked(auth).mockResolvedValue(null as never)
     const req = new NextRequest('http://localhost/api/admin/songs')
     const res = await GET(req)
     expect(res.status).toBe(401)

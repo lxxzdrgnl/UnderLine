@@ -43,7 +43,7 @@ describe('determineLyricsAction', () => {
       },
     ] as any)
 
-    const { determineLyricsAction } = await import('@/app/api/songs/[id]/lyrics/route')
+    const { determineLyricsAction } = await import('@/lib/lyrics-service')
     const action = await determineLyricsAction('song-1')
     expect(action.type).toBe('serve_cached')
   })
@@ -57,7 +57,7 @@ describe('determineLyricsAction', () => {
       locked_at: new Date(),
     } as any)
 
-    const { determineLyricsAction } = await import('@/app/api/songs/[id]/lyrics/route')
+    const { determineLyricsAction } = await import('@/lib/lyrics-service')
     const action = await determineLyricsAction('song-1')
     expect(action.type).toBe('processing')
   })

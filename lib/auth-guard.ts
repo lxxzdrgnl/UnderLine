@@ -29,3 +29,13 @@ export async function requireAdmin(req: NextRequest) {
   }
   return null
 }
+
+export function withAdmin<C>(
+  handler: (req: NextRequest, ctx: C) => Promise<Response>
+): (req: NextRequest, ctx: C) => Promise<Response> {
+  return async (req, ctx) => {
+    const guard = await requireAdmin(req)
+    if (guard) return guard
+    return handler(req, ctx)
+  }
+}

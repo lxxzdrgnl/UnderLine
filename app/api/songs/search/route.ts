@@ -20,6 +20,7 @@ import { searchSongs } from '@/lib/genius'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { stripRomanized, isGeniusRomanizations } from '@/lib/strings'
+import { apiError } from '@/lib/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -67,6 +68,6 @@ export async function GET(request: NextRequest) {
       q,
       error: error instanceof Error ? error.message : String(error),
     })
-    return Response.json({ error: 'Search failed' }, { status: 500 })
+    return Response.json(apiError(request.nextUrl.pathname, 500, 'GENIUS_API_ERROR'), { status: 500 })
   }
 }

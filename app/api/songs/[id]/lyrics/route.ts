@@ -26,68 +26,24 @@ import { scrapeLyrics } from '@/lib/scraper'
 import { fetchReferentsRaw, formatReferents, isReferentRawArray, fetchOriginalSongPath, isRomanizationPath } from '@/lib/genius'
 import { streamLyricInterpretations } from '@/lib/gpt'
 import { logger } from '@/lib/logger'
-import { randomUUID } from 'crypto'
+import { apiError } from '@/lib/api-error'
+import { determineLyricsAction, type LyricsAction } from '@/lib/lyrics-service'
 import type { LyricLineData } from '@/types'
 
-export const dynamic = 'force-dynamic'
-export const maxDuration = 300
+const encoder = new TextEncoder()
 
-const STALE_LOCK_MS = 5 * 60 * 1000
-
-type LyricsAction =
-  | { type: 'serve_cached'; lines: LyricLineData[] }
-  | { type: 'processing' }
-  | { type: 'generate'; song: { genius_id: string; genius_path: string }; generationId: string }
-
-export async function determineLyricsAction(songId: string): Promise<LyricsAction> {
-  const song = await prisma.song.findUnique({ where: { id: songId } })
-  if (!song) throw new Error('Song not found')
-
-  if (song.lyrics_status === 'DONE') {
-    const lines = await prisma.lyricLine.findMany({
-      where: { song_id: songId },
-      orderBy: { line_number: 'asc' },
-      select: {
-        line_number: true,
-        original: true,
-        translation: true,
-        slang: true,
-        explanation: true,
-      },
-    })
-    return { type: 'serve_cached', lines }
-  }
-
-  const isStale =
-    song.lyrics_status === 'PROCESSING' &&
-    song.locked_at != null &&
-    Date.now() - song.locked_at.getTime() > STALE_LOCK_MS
-
-  if (song.lyrics_status === 'PROCESSING' && !isStale) {
-    return { type: 'processing' }
-  }
-
-  const generationId = randomUUID()
-  const staleThreshold = new Date(Date.now() - STALE_LOCK_MS)
-
-  const { count } = await prisma.song.updateMany({
-    where: {
-      id: songId,
-      OR: [
-        { lyrics_status: 'NONE' },
-        { lyrics_status: 'FAILED' },
-        { lyrics_status: 'PROCESSING', locked_at: { lt: staleThreshold } },
-      ],
-    },
-    data: { lyrics_status: 'PROCESSING', locked_at: new Date(), generation_id: generationId },
-  })
-
-  if (count === 0) return { type: 'processing' }
-  return { type: 'generate', song, generationId }
+function encodeLine(line: LyricLineData): Uint8Array {
+  return encoder.encode(JSON.stringify({
+    line: line.line_number,
+    original: line.original,
+    translation: line.translation,
+    slang: line.slang,
+    explanation: line.explanation,
+  }) + '\n')
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
@@ -96,28 +52,18 @@ export async function GET(
   try {
     action = await determineLyricsAction(id)
   } catch {
-    return Response.json({ error: 'Not found' }, { status: 404 })
+    return Response.json(apiError(request.nextUrl.pathname, 404, 'SONG_NOT_FOUND'), { status: 404 })
   }
 
   if (action.type === 'processing') {
-    return Response.json({ status: 'processing' }, { status: 202 })
+    return Response.json(apiError(request.nextUrl.pathname, 202, 'LYRICS_PROCESSING'), { status: 202 })
   }
-
-  const encoder = new TextEncoder()
 
   if (action.type === 'serve_cached') {
     const stream = new ReadableStream({
       start(controller) {
         for (const line of action.lines) {
-          controller.enqueue(
-            encoder.encode(JSON.stringify({
-              line: line.line_number,
-              original: line.original,
-              translation: line.translation,
-              slang: line.slang,
-              explanation: line.explanation,
-            }) + '\n')
-          )
+          controller.enqueue(encodeLine(line))
         }
         controller.close()
       },
@@ -187,15 +133,7 @@ export async function GET(
         logger.info('lyrics: streaming GPT', { songId: id })
 
         for await (const line of streamLyricInterpretations(rawLyrics, referentsContext)) {
-          controller.enqueue(
-            encoder.encode(JSON.stringify({
-              line: line.line_number,
-              original: line.original,
-              translation: line.translation,
-              slang: line.slang,
-              explanation: line.explanation,
-            }) + '\n')
-          )
+          controller.enqueue(encodeLine(line))
           buffer.push(line)
           if (buffer.length >= 10) await flushBuffer()
         }

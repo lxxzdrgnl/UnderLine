@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { fetchSongDetail } from '@/lib/genius'
 import { stripRomanized, isGeniusRomanizations } from '@/lib/strings'
 import { LyricsView } from '@/components/lyrics/LyricsView'
-import { AlbumTrackList } from '@/components/AlbumTrackList'
+import { AlbumTrackList } from '@/components/song/AlbumTrackList'
 
 interface Props {
   params: Promise<{ id: string }>

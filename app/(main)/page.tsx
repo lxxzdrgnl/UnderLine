@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import { SearchBar } from '@/components/search/SearchBar'
-import { NowPlaying } from '@/components/NowPlaying'
+import { NowPlaying } from '@/components/song/NowPlaying'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 

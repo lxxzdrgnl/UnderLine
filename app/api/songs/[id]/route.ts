@@ -18,11 +18,12 @@
  */
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { apiError } from '@/lib/api-error'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
@@ -39,6 +40,6 @@ export async function GET(
     },
   })
 
-  if (!song) return Response.json({ error: 'Not found' }, { status: 404 })
+  if (!song) return Response.json(apiError(request.nextUrl.pathname, 404, 'SONG_NOT_FOUND'), { status: 404 })
   return Response.json(song)
 }

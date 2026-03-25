@@ -41,7 +41,7 @@ export function SearchBar({ isLoggedIn = false }: Props) {
   const loadHistory = useCallback(async () => {
     if (isLoggedIn) {
       try {
-        const res = await fetch('/api/search-history')
+        const res = await fetch('/api/user/search-history')
         const data = await res.json()
         setHistory(Array.isArray(data) ? data : [])
       } catch { setHistory([]) }
@@ -59,7 +59,7 @@ export function SearchBar({ isLoggedIn = false }: Props) {
   const saveHistory = useCallback(async (item: HistoryItem) => {
     if (isLoggedIn) {
       try {
-        await fetch('/api/search-history', {
+        await fetch('/api/user/search-history', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(item),
@@ -84,7 +84,7 @@ export function SearchBar({ isLoggedIn = false }: Props) {
     e.preventDefault()
     if (isLoggedIn) {
       try {
-        await fetch(`/api/search-history?genius_id=${encodeURIComponent(genius_id)}`, { method: 'DELETE' })
+        await fetch(`/api/user/search-history?genius_id=${encodeURIComponent(genius_id)}`, { method: 'DELETE' })
         setHistory((prev) => prev.filter((h) => h.genius_id !== genius_id))
       } catch {}
     } else {
