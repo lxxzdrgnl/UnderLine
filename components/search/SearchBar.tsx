@@ -22,9 +22,10 @@ const MAX_LOCAL = 10
 
 interface Props {
   isLoggedIn?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
-export function SearchBar({ isLoggedIn = false }: Props) {
+export function SearchBar({ isLoggedIn = false, onOpenChange }: Props) {
   const searchParams = useSearchParams()
   const [query, setQuery] = useState(() => searchParams.get('q') ?? '')
   const [results, setResults] = useState<SearchResult[]>([])
@@ -188,9 +189,13 @@ export function SearchBar({ isLoggedIn = false }: Props) {
         onFocus={() => {
           if (blurTimerRef.current) clearTimeout(blurTimerRef.current)
           setIsFocused(true)
+          onOpenChange?.(true)
         }}
         onBlur={() => {
-          blurTimerRef.current = setTimeout(() => setIsFocused(false), 150)
+          blurTimerRef.current = setTimeout(() => {
+            setIsFocused(false)
+            onOpenChange?.(false)
+          }, 150)
         }}
         placeholder="어떤 곡의 숨겨진 의미가 궁금하신가요?"
         style={{

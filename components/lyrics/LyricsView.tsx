@@ -162,7 +162,7 @@ export function LyricsView({ songId }: { songId: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 0, flexWrap: 'nowrap', position: 'relative' }}>
       {/* 가사 컬럼 */}
-      <div style={{ flex: '0 0 58%', paddingTop: '16px', paddingBottom: '16px', paddingRight: '20px' }}>
+      <div className="lyrics-col">
         {status === 'loading' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {Array.from({ length: 8 }).map((_, i) => (

@@ -11,7 +11,9 @@ function formatTime(ms: number) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
 
-export function NowPlaying() {
+const LS_KEY = 'ul_search_history'
+
+export function NowPlaying({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
   const [track, setTrack] = useState<NowPlayingTrack | null | undefined>(undefined)
   const [progress, setProgress] = useState(0)
   const [navigating, setNavigating] = useState(false)
@@ -36,13 +38,30 @@ export function NowPlaying() {
         const d = await post.json()
         songId = d.id
       }
+
+      // 검색 기록 저장
+      const historyItem = { genius_id: first.genius_id, title: first.title, artist: first.artist, image_url: first.image_url }
+      if (isLoggedIn) {
+        fetch('/api/user/search-history', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(historyItem),
+        }).catch(() => {})
+      } else {
+        try {
+          const existing = JSON.parse(localStorage.getItem(LS_KEY) ?? '[]')
+          const updated = [historyItem, ...existing.filter((h: { genius_id: string }) => h.genius_id !== first.genius_id)].slice(0, 10)
+          localStorage.setItem(LS_KEY, JSON.stringify(updated))
+        } catch {}
+      }
+
       router.push(`/songs/${songId}`)
     } catch {
       // 조용히 무시
     } finally {
       setNavigating(false)
     }
-  }, [track, navigating, router])
+  }, [track, navigating, router, isLoggedIn])
 
   const fetchTrack = useCallback(async () => {
     try {

@@ -1,8 +1,6 @@
-import { Suspense } from 'react'
-import { SearchBar } from '@/components/search/SearchBar'
-import { NowPlaying } from '@/components/song/NowPlaying'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { HomeSearch } from '@/components/home/HomeSearch'
 
 export default async function HomePage() {
   const session = await auth()
@@ -71,28 +69,7 @@ export default async function HomePage() {
         가사의 숨겨진 의미를 한 줄 한 줄 찾아보세요
       </p>
 
-      {/* Search */}
-      <div style={{
-        width: '100%',
-        maxWidth: '560px',
-        animation: 'fade-up 600ms var(--ease) 300ms both',
-      }}>
-        <Suspense fallback={null}>
-          <SearchBar isLoggedIn={!!session?.user?.id} />
-        </Suspense>
-      </div>
-
-      {/* Now Playing */}
-      {hasSpotify && (
-        <div style={{
-          marginTop: '40px',
-          width: '100%',
-          maxWidth: '560px',
-          animation: 'fade-up 600ms var(--ease) 400ms both',
-        }}>
-          <NowPlaying />
-        </div>
-      )}
+      <HomeSearch isLoggedIn={!!session?.user?.id} hasSpotify={hasSpotify} />
     </div>
   )
 }
