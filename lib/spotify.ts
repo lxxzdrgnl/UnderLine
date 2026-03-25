@@ -79,3 +79,93 @@ export async function getNowPlaying(userId: string): Promise<NowPlayingTrack | n
     spotify_url: track.external_urls?.spotify ?? '',
   }
 }
+
+export interface SpotifyPlaylist {
+  id: string
+  name: string
+  trackCount: number
+  image_url: string | null
+}
+
+export async function getSpotifyPlaylists(userId: string): Promise<SpotifyPlaylist[]> {
+  const account = await prisma.account.findFirst({
+    where: { userId, provider: 'spotify' },
+  })
+  if (!account?.access_token) return []
+
+  let token = account.access_token
+  if (account.expires_at && account.expires_at < Math.floor(Date.now() / 1000) + 30) {
+    if (!account.refresh_token) return []
+    const refreshed = await refreshSpotifyToken(account.id, account.refresh_token)
+    if (!refreshed) return []
+    token = refreshed
+  }
+
+  const playlists: SpotifyPlaylist[] = []
+  let url: string | null = 'https://api.spotify.com/v1/me/playlists?limit=50'
+
+  while (url) {
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) break
+
+    const data = await res.json() as { items?: Array<{ id: string; name: string; tracks?: { total: number }; images?: Array<{ url: string }> }>; next: string | null }
+    for (const item of data.items ?? []) {
+      playlists.push({
+        id: item.id,
+        name: item.name,
+        trackCount: item.tracks?.total ?? 0,
+        image_url: item.images?.[0]?.url ?? null,
+      })
+    }
+    url = data.next
+  }
+
+  return playlists
+}
+
+export interface SpotifyTrack {
+  title: string
+  artist: string
+  spotifyId: string
+}
+
+export async function getSpotifyPlaylistTracks(userId: string, playlistId: string): Promise<SpotifyTrack[]> {
+  const account = await prisma.account.findFirst({
+    where: { userId, provider: 'spotify' },
+  })
+  if (!account?.access_token) return []
+
+  let token = account.access_token
+  if (account.expires_at && account.expires_at < Math.floor(Date.now() / 1000) + 30) {
+    if (!account.refresh_token) return []
+    const refreshed = await refreshSpotifyToken(account.id, account.refresh_token)
+    if (!refreshed) return []
+    token = refreshed
+  }
+
+  const tracks: SpotifyTrack[] = []
+  let url: string | null = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=100&fields=items(track(id,name,artists)),next`
+
+  while (url) {
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) break
+
+    const data = await res.json() as { items?: Array<{ track: { id: string; name: string; artists?: Array<{ name: string }> } | null }>; next: string | null }
+    for (const item of data.items ?? []) {
+      const t = item.track
+      if (!t?.name) continue
+      tracks.push({
+        title: t.name,
+        artist: t.artists?.map((a: { name: string }) => a.name).join(', ') ?? '',
+        spotifyId: t.id,
+      })
+    }
+    url = data.next
+  }
+
+  return tracks
+}
