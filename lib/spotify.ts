@@ -85,11 +85,13 @@ export interface SpotifyPlaylist {
   name: string
   trackCount: number
   image_url: string | null
+  isOwn: boolean
 }
 
 export async function getSpotifyPlaylists(userId: string): Promise<SpotifyPlaylist[]> {
   const account = await prisma.account.findFirst({
     where: { userId, provider: 'spotify' },
+    select: { access_token: true, refresh_token: true, expires_at: true, id: true, providerAccountId: true },
   })
   if (!account?.access_token) return []
 
@@ -108,18 +110,26 @@ export async function getSpotifyPlaylists(userId: string): Promise<SpotifyPlayli
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
     })
-    if (!res.ok) break
+    if (!res.ok) {
+      console.error('[spotify] playlists fetch failed:', res.status, await res.text().catch(() => ''))
+      break
+    }
 
-    const data = await res.json() as { items?: Array<{ id: string; name: string; tracks?: { total: number }; images?: Array<{ url: string }> }>; next: string | null }
-    for (const item of data.items ?? []) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data: any = await res.json()
+    for (const item of (data.items ?? []) as any[]) {
+      // 2026 Feb API change: "tracks" renamed to "items" in playlist object
+      const tracksObj = item.tracks ?? item.items
+      const ownerId = item.owner?.id
       playlists.push({
         id: item.id,
         name: item.name,
-        trackCount: item.tracks?.total ?? 0,
+        trackCount: typeof tracksObj === 'object' ? (tracksObj?.total ?? 0) : 0,
         image_url: item.images?.[0]?.url ?? null,
+        isOwn: ownerId === account.providerAccountId,
       })
     }
-    url = data.next
+    url = data.next ?? null
   }
 
   return playlists
@@ -146,17 +156,23 @@ export async function getSpotifyPlaylistTracks(userId: string, playlistId: strin
   }
 
   const tracks: SpotifyTrack[] = []
-  let url: string | null = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=100&fields=items(track(id,name,artists)),next`
+  // 2026 Feb API change: /tracks → /items
+  let url: string | null = `https://api.spotify.com/v1/playlists/${playlistId}/items?limit=100`
 
   while (url) {
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
     })
-    if (!res.ok) break
+    if (!res.ok) {
+      console.error('[spotify] tracks fetch failed:', res.status, await res.text().catch(() => ''))
+      break
+    }
 
-    const data = await res.json() as { items?: Array<{ track: { id: string; name: string; artists?: Array<{ name: string }> } | null }>; next: string | null }
-    for (const item of data.items ?? []) {
-      const t = item.track
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data: any = await res.json()
+    for (const item of (data.items ?? []) as any[]) {
+      // 2026 Feb: "track" renamed to "item"
+      const t = item.item ?? item.track
       if (!t?.name) continue
       tracks.push({
         title: t.name,

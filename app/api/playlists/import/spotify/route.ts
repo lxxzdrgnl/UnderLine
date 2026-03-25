@@ -23,8 +23,9 @@ export async function POST(request: Request) {
 
   // Fetch all tracks from Spotify
   const tracks = await getSpotifyPlaylistTracks(session.user.id, spotifyPlaylistId)
+  console.log('[import/spotify] fetched', tracks.length, 'tracks from Spotify playlist', spotifyPlaylistId)
   if (tracks.length === 0) {
-    return Response.json({ error: 'empty_playlist' }, { status: 422 })
+    return Response.json({ error: 'empty_playlist', message: 'Spotify에서 트랙을 가져오지 못했어요. Spotify 재연동이 필요할 수 있어요.' }, { status: 422 })
   }
 
   // Determine playlist name
@@ -43,12 +44,26 @@ export async function POST(request: Request) {
   let imported = 0
   let skipped = 0
 
+  function normalize(s: string) {
+    return s.toLowerCase().replace(/[^a-z0-9가-힣]/g, '')
+  }
+
+  function isRelevantMatch(spotifyTitle: string, geniusTitle: string) {
+    const a = normalize(spotifyTitle)
+    const b = normalize(geniusTitle)
+    // Either title contains the other, or they share significant overlap
+    return a.includes(b) || b.includes(a) || a === b
+  }
+
   async function processTrack(track: { title: string; artist: string }, position: number) {
     try {
       const results = await searchSongs(`${track.title} ${track.artist}`)
       if (results.length === 0) { skipped++; return }
 
-      const hit = results[0]
+      // Find first result that actually matches the song title
+      const hit = results.find((r) => isRelevantMatch(track.title, r.title))
+      if (!hit) { skipped++; return }
+      // Only save genius_id + basic info from search. Detail fetched on song page visit.
       const song = await prisma.song.upsert({
         where: { genius_id: hit.genius_id },
         create: {

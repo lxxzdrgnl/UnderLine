@@ -10,7 +10,7 @@ export async function GET() {
 
   const account = await prisma.account.findFirst({
     where: { userId: session.user.id, provider: 'spotify' },
-    select: { id: true },
+    select: { id: true, scope: true },
   })
   if (!account) {
     return Response.json({ error: 'spotify_not_linked' }, { status: 403 })

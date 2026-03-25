@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 
 interface SpotifyPlaylist {
@@ -8,6 +9,7 @@ interface SpotifyPlaylist {
   name: string
   trackCount: number
   image_url: string | null
+  isOwn: boolean
 }
 
 export function SpotifyImportModal({ onClose }: { onClose: () => void }) {
@@ -60,13 +62,14 @@ export function SpotifyImportModal({ onClose }: { onClose: () => void }) {
         onClose()
       }, 1500)
     } else {
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
       if (data.limitReached) setError('최대 50개까지 만들 수 있어요')
-      else setError('가져오기 실패')
+      else if (data.error === 'empty_playlist') setError(data.message || '트랙을 가져오지 못했어요 — Spotify 재연동 필요')
+      else setError(`가져오기 실패: ${data.error || res.status}`)
     }
   }
 
-  return (
+  return createPortal(
     <div style={{
       position: 'fixed', inset: 0, zIndex: 70,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -76,8 +79,7 @@ export function SpotifyImportModal({ onClose }: { onClose: () => void }) {
         background: 'var(--bg-surface)',
         borderRadius: 'var(--r-xl)',
         padding: '24px',
-        minWidth: '340px',
-        maxWidth: '440px',
+        width: 'min(440px, 90vw)',
         maxHeight: '80vh',
         overflowY: 'auto',
         boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
@@ -106,13 +108,16 @@ export function SpotifyImportModal({ onClose }: { onClose: () => void }) {
             {playlists.map((p) => (
               <button
                 key={p.id}
-                onClick={() => { setSelected(p); setName(p.name) }}
-                className="hover-row"
+                onClick={() => { if (p.isOwn) { setSelected(p); setName(p.name) } }}
+                disabled={!p.isOwn}
+                className={p.isOwn ? 'hover-row' : undefined}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '12px',
                   padding: '10px 12px', borderRadius: 'var(--r-md)',
-                  background: 'none', border: 'none', cursor: 'pointer',
+                  background: 'none', border: 'none',
+                  cursor: p.isOwn ? 'pointer' : 'not-allowed',
                   textAlign: 'left', width: '100%',
+                  opacity: p.isOwn ? 1 : 0.4,
                 }}
               >
                 {p.image_url && (
@@ -123,7 +128,7 @@ export function SpotifyImportModal({ onClose }: { onClose: () => void }) {
                     {p.name}
                   </p>
                   <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--text-faint)' }}>
-                    {p.trackCount}곡
+                    {p.trackCount}곡{!p.isOwn && ' · 다른 사용자의 플레이리스트'}
                   </p>
                 </div>
               </button>
@@ -181,6 +186,7 @@ export function SpotifyImportModal({ onClose }: { onClose: () => void }) {
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

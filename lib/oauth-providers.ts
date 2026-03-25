@@ -39,6 +39,8 @@ export const OAUTH_PROVIDERS: Record<string, OAuthProviderConfig> = {
       'user-read-currently-playing',
       'user-read-playback-state',
       'user-library-read',
+      'playlist-read-private',
+      'playlist-read-collaborative',
     ],
     clientIdEnv: 'SPOTIFY_CLIENT_ID',
     clientSecretEnv: 'SPOTIFY_CLIENT_SECRET',
