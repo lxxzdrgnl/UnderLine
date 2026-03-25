@@ -97,6 +97,10 @@ Next.js App Router (Node Runtime)
 
 ---
 
+## Why No LangChain
+
+LangChain is useful for RAG pipelines, multi-LLM chains, and dynamic agent tool selection. This project does none of that — it's a single GPT-4o call per song with NDJSON streaming. Adding LangChain would only increase bundle size and introduce an abstraction layer that makes streaming and error handling harder to debug. The OpenAI SDK is called directly in `lib/gpt.ts`.
+
 ## GPT Prompt Design
 
 Lyrics interpretation is driven by a detailed system prompt in `lib/gpt.ts`. The prompt is structured in two parts.

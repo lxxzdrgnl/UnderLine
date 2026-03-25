@@ -7,7 +7,7 @@ const LIMITS: Record<string, { limit: number; windowMs: number }> = {
   default:                  { limit: 60, windowMs: 60_000 }, // 기타 API
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   if (!pathname.startsWith('/api/')) return NextResponse.next()
