@@ -3,20 +3,20 @@
 
 /* ─── Design Tokens ────────────────────────────────────── */
 :root {
-  /* Background layers */
-  --bg:          #0A0A0A;
-  --bg-surface:  #141414;
-  --bg-subtle:   #1E1E1E;
-  --bg-elevated: #2A2A2A;
+  /* Background layers — Spotify palette */
+  --bg:          #121212;
+  --bg-surface:  #181818;
+  --bg-subtle:   #282828;
+  --bg-elevated: #3E3E3E;
 
   /* Text */
-  --text:        #F5F5F0;
-  --text-muted:  #A0A0A0;
-  --text-faint:  #555555;
+  --text:        #FFFFFF;
+  --text-muted:  #B3B3B3;
+  --text-faint:  #727272;
 
   /* Border */
-  --border:        #242424;
-  --border-strong: #383838;
+  --border:        #282828;
+  --border-strong: #3E3E3E;
 
   /* Accent — Spotify green */
   --accent:     #1DB954;

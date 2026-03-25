@@ -59,7 +59,10 @@ export async function GET(
   })
 
   const clientId = process.env[config.clientIdEnv]!
-  const redirectUri = `${process.env.AUTH_URL}/api/oauth/${provider}/callback`
+  const forwardedHost = req.headers.get('x-forwarded-host')
+  const redirectUri = forwardedHost
+    ? `${req.headers.get('x-forwarded-proto') ?? 'https'}://${forwardedHost}/api/oauth/${provider}/callback`
+    : `${process.env.AUTH_URL}/api/oauth/${provider}/callback`
 
   const url = new URL(config.authUrl)
   url.searchParams.set('client_id', clientId)
