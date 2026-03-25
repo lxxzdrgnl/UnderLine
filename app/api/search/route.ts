@@ -42,6 +42,17 @@ export async function GET(request: NextRequest) {
       seen.add(aid)
       items.push({ id: aid, name: a.name, image_url: a.image_url ?? null })
     }
+
+    // Sort by name relevance to query
+    const ql = q.toLowerCase()
+    items.sort((a, b) => {
+      const al = a.name.toLowerCase()
+      const bl = b.name.toLowerCase()
+      const aExact = al === ql ? 0 : al.startsWith(ql) ? 1 : al.includes(ql) ? 2 : 3
+      const bExact = bl === ql ? 0 : bl.startsWith(ql) ? 1 : bl.includes(ql) ? 2 : 3
+      return aExact - bExact
+    })
+
     return Response.json({ items, hasMore })
   }
 

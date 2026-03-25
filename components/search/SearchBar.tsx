@@ -9,6 +9,12 @@ interface SearchResult extends GeniusSearchResult {
   lyrics_status: string | null
 }
 
+interface ArtistResult {
+  id: string
+  name: string
+  image_url: string | null
+}
+
 interface HistoryItem {
   id?: string
   genius_id: string
@@ -30,6 +36,7 @@ export function SearchBar({ isLoggedIn = false, onOpenChange }: Props) {
   const searchParams = useSearchParams()
   const [query, setQuery] = useState(() => searchParams.get('q') ?? '')
   const [results, setResults] = useState<SearchResult[]>([])
+  const [artists, setArtists] = useState<ArtistResult[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [isFocused, setIsFocused] = useState(false)
@@ -43,7 +50,7 @@ export function SearchBar({ isLoggedIn = false, onOpenChange }: Props) {
   const router = useRouter()
 
   const showHistory = isFocused && query.trim().length < 2 && history.length > 0
-  const showResults = isFocused && !showHistory && results.length > 0
+  const showResults = isFocused && !showHistory && (results.length > 0 || artists.length > 0)
 
   // ── History: load ──────────────────────────────────────
   const loadHistory = useCallback(async () => {
@@ -115,17 +122,22 @@ export function SearchBar({ isLoggedIn = false, onOpenChange }: Props) {
   // ── Debounced search ───────────────────────────────────
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    if (query.trim().length < 2) { setResults([]); setHasMore(false); return }
+    if (query.trim().length < 2) { setResults([]); setArtists([]); setHasMore(false); return }
 
     debounceRef.current = setTimeout(async () => {
       currentQuery.current = query
       setLoading(true)
       setSearchPage(1)
       try {
-        const res = await fetch(`/api/songs/search?q=${encodeURIComponent(query)}&page=1`)
-        const data = await res.json()
-        setResults(data.results ?? [])
-        setHasMore(data.hasMore ?? false)
+        const [songsRes, artistsRes] = await Promise.all([
+          fetch(`/api/songs/search?q=${encodeURIComponent(query)}&page=1`),
+          fetch(`/api/search?q=${encodeURIComponent(query)}&type=artists`),
+        ])
+        const songsData = await songsRes.json()
+        const artistsData = await artistsRes.json()
+        setResults(songsData.results ?? [])
+        setArtists((artistsData.items ?? []).slice(0, 3))
+        setHasMore(songsData.hasMore ?? false)
       } finally {
         setLoading(false)
       }
@@ -243,7 +255,7 @@ export function SearchBar({ isLoggedIn = false, onOpenChange }: Props) {
         {query.length > 0 && !loading && (
           <button
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() => { setQuery(''); setResults([]) }}
+            onClick={() => { setQuery(''); setResults([]); setArtists([]) }}
             style={{
               position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
               background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%',
@@ -352,7 +364,44 @@ export function SearchBar({ isLoggedIn = false, onOpenChange }: Props) {
             </>
           )}
 
-          {/* Search results */}
+          {/* Artist results */}
+          {showResults && artists.length > 0 && artists.map((a) => (
+            <li
+              key={`artist-${a.id}`}
+              onClick={() => {
+                saveHistory({ genius_id: `artist:${a.id}`, title: a.name, artist: '', image_url: a.image_url, type: 'artist' })
+                setIsFocused(false)
+                router.push(`/artists/${a.id}`)
+              }}
+              className="search-dropdown-row"
+              style={{
+                display: 'flex', alignItems: 'center', gap: '12px',
+                padding: '8px 16px', cursor: 'pointer',
+                transition: 'background 80ms',
+              }}
+            >
+              <div style={{
+                width: '40px', height: '40px', borderRadius: '50%', flexShrink: 0,
+                overflow: 'hidden', background: '#333',
+              }}>
+                {a.image_url ? (
+                  <img src={a.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)', fontSize: '16px' }}>♫</div>
+                )}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: 0, fontWeight: 500, fontSize: '14px', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {a.name}
+                </p>
+                <p style={{ margin: '1px 0 0', fontSize: '12px', color: 'var(--text-faint)' }}>
+                  아티스트
+                </p>
+              </div>
+            </li>
+          ))}
+
+          {/* Song results */}
           {showResults && results.map((r, idx) => (
             <li
               key={r.genius_id}

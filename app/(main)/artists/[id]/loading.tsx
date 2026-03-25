@@ -1,17 +1,32 @@
 export default function ArtistLoading() {
   return (
     <div className="page-enter" style={{ paddingBottom: '64px' }}>
-      {/* Hero skeleton */}
+      {/* Hero skeleton — centered layout with banner bg */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: '28px',
-        padding: '40px 0 32px', borderBottom: '1px solid var(--border)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+        gap: '20px', padding: '80px 16px 32px',
+        marginLeft: 'calc(-50vw + 50%)', marginRight: 'calc(-50vw + 50%)',
+        borderBottom: '1px solid var(--border)',
+        background: 'linear-gradient(to top, var(--bg) 0%, rgba(255,255,255,0.03) 100%)',
       }}>
-        <div className="skeleton" style={{ width: '140px', height: '140px', borderRadius: '50%', flexShrink: 0 }} />
-        <div style={{ flex: 1 }}>
-          <div className="skeleton" style={{ width: '60px', height: '12px', marginBottom: '12px' }} />
-          <div className="skeleton" style={{ width: '200px', height: '36px', marginBottom: '12px' }} />
-          <div className="skeleton" style={{ width: '80%', height: '14px' }} />
+        <div className="skeleton" style={{ width: '160px', height: '160px', borderRadius: '50%' }} />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+          <div className="skeleton" style={{ width: '60px', height: '12px' }} />
+          <div className="skeleton" style={{ width: '220px', height: '42px' }} />
+          <div className="skeleton" style={{ width: '160px', height: '12px' }} />
+          <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+            <div className="skeleton" style={{ width: '16px', height: '16px', borderRadius: '50%' }} />
+            <div className="skeleton" style={{ width: '16px', height: '16px', borderRadius: '50%' }} />
+            <div className="skeleton" style={{ width: '16px', height: '16px', borderRadius: '50%' }} />
+          </div>
         </div>
+      </div>
+
+      {/* Bio skeleton */}
+      <div style={{ padding: '24px 0 0' }}>
+        <div className="skeleton" style={{ width: '100%', height: '14px', marginBottom: '8px' }} />
+        <div className="skeleton" style={{ width: '80%', height: '14px', marginBottom: '8px' }} />
+        <div className="skeleton" style={{ width: '50px', height: '12px' }} />
       </div>
 
       {/* Albums skeleton */}
