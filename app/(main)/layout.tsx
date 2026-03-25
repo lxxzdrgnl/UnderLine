@@ -19,7 +19,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
           position: 'sticky',
           top: 0,
           zIndex: 40,
-          background: 'rgba(10, 10, 10, 0.92)',
+          background: 'rgba(18, 18, 18, 0.92)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
         }}
@@ -52,14 +52,6 @@ export default async function MainLayout({ children }: { children: React.ReactNo
         </Link>
 
         <nav style={{ display: 'flex', alignItems: 'center', gap: '20px', fontSize: 'var(--text-sm)' }}>
-          <Link
-            href="/docs"
-            style={{ color: 'var(--text-faint)', textDecoration: 'none' }}
-            className="hover-dim"
-          >
-            API
-          </Link>
-
           {session ? (
             <Link href="/profile" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
               {session.user?.image && (
