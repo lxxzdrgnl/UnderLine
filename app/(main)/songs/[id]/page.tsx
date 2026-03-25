@@ -5,6 +5,7 @@ import { fetchSongDetail } from '@/lib/genius'
 import { stripRomanized, isGeniusRomanizations } from '@/lib/strings'
 import { LyricsView } from '@/components/lyrics/LyricsView'
 import { AlbumTrackList } from '@/components/song/AlbumTrackList'
+import { FavoriteButton } from '@/components/playlist/FavoriteButton'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -146,19 +147,22 @@ export default async function SongPage({ params }: Props) {
         )}
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h1
-            style={{
-              margin: '0 0 8px',
-              fontSize: 'clamp(22px, 4vw, 36px)',
-              fontFamily: "'DM Serif Display', Georgia, serif",
-              fontWeight: 400,
-              color: 'var(--text)',
-              lineHeight: 1.15,
-              letterSpacing: '-0.02em',
-            }}
-          >
-            {displayTitle}
-          </h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <h1
+              style={{
+                margin: '0 0 8px',
+                fontSize: 'clamp(22px, 4vw, 36px)',
+                fontFamily: "'DM Serif Display', Georgia, serif",
+                fontWeight: 400,
+                color: 'var(--text)',
+                lineHeight: 1.15,
+                letterSpacing: '-0.02em',
+              }}
+            >
+              {displayTitle}
+            </h1>
+            <FavoriteButton songId={song.id} />
+          </div>
 
           {/* Artist + feat. */}
           <p style={{ margin: '0 0 6px', fontSize: 'var(--text-base)', color: 'var(--text-muted)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px' }}>
