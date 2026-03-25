@@ -1,4 +1,5 @@
-import { auth } from '@/lib/auth'
+import { NextRequest } from 'next/server'
+import { requireSession } from '@/lib/auth-guard'
 import { prisma } from '@/lib/prisma'
 import { getSpotifyPlaylistTracks } from '@/lib/spotify'
 import { searchSongs } from '@/lib/genius'
@@ -6,9 +7,9 @@ import { searchSongs } from '@/lib/genius'
 const MAX_PLAYLISTS = 50
 const CONCURRENCY = 5
 
-export async function POST(request: Request) {
-  const session = await auth()
-  if (!session?.user?.id) return Response.json(null, { status: 401 })
+export async function POST(request: NextRequest) {
+  const { session, error } = await requireSession(request)
+  if (error) return error
 
   const { spotifyPlaylistId, name } = await request.json()
   if (!spotifyPlaylistId) {

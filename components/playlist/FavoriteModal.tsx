@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { useModalDismiss } from '@/hooks/useModalDismiss'
 
 const MAX_PLAYLISTS = 50
 
@@ -42,15 +43,7 @@ export function FavoriteModal({ songId, savedPlaylistIds, onClose, onUpdate }: P
       .finally(() => setLoading(false))
   }, [])
 
-  useEffect(() => {
-    const down = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
-    }
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    document.addEventListener('mousedown', down)
-    document.addEventListener('keydown', esc)
-    return () => { document.removeEventListener('mousedown', down); document.removeEventListener('keydown', esc) }
-  }, [onClose])
+  useModalDismiss(ref, onClose)
 
   async function toggle(pid: string) {
     const has = checkedIds.has(pid)

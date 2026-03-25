@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { useModalDismiss } from '@/hooks/useModalDismiss'
 
 interface Props {
   user: { image?: string | null; name?: string | null }
@@ -29,14 +30,7 @@ export function UserDropdown({ user }: Props) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (!open) return
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [open])
+  useModalDismiss(ref, () => setOpen(false), open)
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>

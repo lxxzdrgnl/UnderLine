@@ -1,11 +1,12 @@
-import { auth } from '@/lib/auth'
+import { NextRequest } from 'next/server'
+import { requireSession } from '@/lib/auth-guard'
 import { prisma } from '@/lib/prisma'
 
 interface Params { params: Promise<{ id: string }> }
 
-export async function PUT(request: Request, { params }: Params) {
-  const session = await auth()
-  if (!session?.user?.id) return Response.json(null, { status: 401 })
+export async function PUT(request: NextRequest, { params }: Params) {
+  const { session, error } = await requireSession(request)
+  if (error) return error
 
   const { id } = await params
 

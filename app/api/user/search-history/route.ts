@@ -1,13 +1,13 @@
 import { NextRequest } from 'next/server'
-import { auth } from '@/lib/auth'
+import { requireSession } from '@/lib/auth-guard'
 import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
 // GET /api/search-history?cursor=xxx&limit=20
 export async function GET(request: NextRequest) {
-  const session = await auth()
-  if (!session?.user?.id) return Response.json([], { status: 200 })
+  const { session, error } = await requireSession(request)
+  if (error) return error
 
   const cursor = request.nextUrl.searchParams.get('cursor')
   const limit = Math.min(Number(request.nextUrl.searchParams.get('limit')) || 20, 50)
@@ -29,8 +29,8 @@ export async function GET(request: NextRequest) {
 
 // POST /api/search-history — upsert (중복이면 created_at 갱신해서 상단으로)
 export async function POST(request: NextRequest) {
-  const session = await auth()
-  if (!session?.user?.id) return Response.json(null, { status: 401 })
+  const { session, error } = await requireSession(request)
+  if (error) return error
 
   const { genius_id, title, artist, image_url } = await request.json()
   if (!genius_id) return Response.json({ error: 'genius_id required' }, { status: 400 })
@@ -45,8 +45,8 @@ export async function POST(request: NextRequest) {
 
 // DELETE /api/search-history?genius_id=xxx
 export async function DELETE(request: NextRequest) {
-  const session = await auth()
-  if (!session?.user?.id) return Response.json(null, { status: 401 })
+  const { session, error } = await requireSession(request)
+  if (error) return error
 
   const genius_id = request.nextUrl.searchParams.get('genius_id')
   if (!genius_id) return Response.json({ error: 'genius_id required' }, { status: 400 })

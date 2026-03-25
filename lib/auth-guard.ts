@@ -13,6 +13,23 @@ export async function requireAuth(req: NextRequest) {
   return null
 }
 
+export async function requireSession(req: NextRequest): Promise<
+  | { session: { user: { id: string; role?: string | null } }; error: null }
+  | { session: null; error: NextResponse }
+> {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return {
+      session: null,
+      error: NextResponse.json(
+        apiError(req.nextUrl.pathname, 401, 'UNAUTHORIZED'),
+        { status: 401 }
+      ),
+    }
+  }
+  return { session: session as { user: { id: string; role?: string | null } }, error: null }
+}
+
 export async function requireAdmin(req: NextRequest) {
   const session = await auth()
   if (!session?.user) {

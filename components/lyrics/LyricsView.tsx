@@ -1,103 +1,19 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { LyricLine } from './LyricLine'
 import { InterpretationPanel } from './InterpretationPanel'
 import type { LyricLineData } from '@/types'
-
-type Status = 'loading' | 'processing' | 'streaming' | 'done' | 'error' | 'empty'
+import { useLyricsStream } from '@/hooks/useLyricsStream'
 
 export function LyricsView({ songId }: { songId: string }) {
-  const [lines, setLines] = useState<LyricLineData[]>([])
-  const [status, setStatus] = useState<Status>('loading')
+  const { lines, status, retry } = useLyricsStream(songId)
   const [selectedLine, setSelectedLine] = useState<LyricLineData | null>(null)
   const [panelTop, setPanelTop] = useState(0)
   const [clampedTop, setClampedTop] = useState(0)
   const panelRef = useRef<HTMLDivElement>(null)
   const panelColRef = useRef<HTMLDivElement>(null)
-  const abortRef = useRef<AbortController | null>(null)
-  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lineRefs = useRef<Map<number, HTMLDivElement>>(new Map())
-
-  const loadLyrics = useCallback(async () => {
-    // Cancel any in-flight request and pending retry
-    abortRef.current?.abort()
-    if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
-
-    const controller = new AbortController()
-    abortRef.current = controller
-
-    setStatus('loading')
-    setLines([])
-
-    let res: Response
-    try {
-      res = await fetch(`/api/songs/${songId}/lyrics`, { signal: controller.signal })
-    } catch (e) {
-      if ((e as Error).name === 'AbortError') return
-      setStatus('error')
-      return
-    }
-
-    if (res.status === 202) {
-      setStatus('processing')
-      retryTimerRef.current = setTimeout(loadLyrics, 3000)
-      return
-    }
-
-    if (!res.ok || !res.body) {
-      setStatus('error')
-      return
-    }
-
-    setStatus('streaming')
-    const reader = res.body.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ''
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const parts = buffer.split('\n')
-        buffer = parts.pop() ?? ''
-
-        for (const part of parts) {
-          if (!part.trim()) continue
-          try {
-            const obj = JSON.parse(part)
-            if (obj.no_lyrics) { setStatus('empty'); return }
-            if (obj.error) { setStatus('error'); return }
-            setLines((prev) => {
-              // Deduplicate by line_number to guard against race conditions
-              if (prev.some((l) => l.line_number === obj.line)) return prev
-              return [...prev, {
-                line_number: obj.line,
-                original: obj.original,
-                translation: obj.translation,
-                slang: obj.slang,
-                explanation: obj.explanation,
-              }]
-            })
-          } catch { /* ignore parse failures */ }
-        }
-      }
-      setStatus('done')
-    } catch (e) {
-      if ((e as Error).name === 'AbortError') return
-      setStatus('error')
-    }
-  }, [songId])
-
-  useEffect(() => {
-    loadLyrics()
-    return () => {
-      abortRef.current?.abort()
-      if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
-    }
-  }, [loadLyrics])
 
   // Clamp panel so it doesn't overflow the parent column
   useEffect(() => {
@@ -162,7 +78,7 @@ export function LyricsView({ songId }: { songId: string }) {
       >
         <p style={{ margin: 0 }}>가사를 불러오는 데 실패했습니다.</p>
         <button
-          onClick={loadLyrics}
+          onClick={retry}
           style={{
             display: 'inline-flex',
             alignItems: 'center',

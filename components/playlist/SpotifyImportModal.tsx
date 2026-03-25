@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
+import { useModalDismiss } from '@/hooks/useModalDismiss'
 
 interface SpotifyPlaylist {
   id: string
@@ -32,17 +33,7 @@ export function SpotifyImportModal({ onClose }: { onClose: () => void }) {
       })
   }, [])
 
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
-    }
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('mousedown', handleClick)
-    document.addEventListener('keydown', handleKey)
-    return () => { document.removeEventListener('mousedown', handleClick); document.removeEventListener('keydown', handleKey) }
-  }, [onClose])
+  useModalDismiss(ref, onClose)
 
   async function handleImport() {
     if (!selected) return

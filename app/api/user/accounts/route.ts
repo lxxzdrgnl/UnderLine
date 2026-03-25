@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { requireSession } from '@/lib/auth-guard'
 import { prisma } from '@/lib/prisma'
 
 // DELETE /api/user/accounts?provider=spotify — 연동 해제
 export async function DELETE(request: NextRequest) {
-  const session = await auth()
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { session, error } = await requireSession(request)
+  if (error) return error
 
   const provider = request.nextUrl.searchParams.get('provider')
   if (!provider) return NextResponse.json({ error: 'provider required' }, { status: 400 })
@@ -23,22 +23,26 @@ export async function DELETE(request: NextRequest) {
   return NextResponse.json({ ok: true })
 }
 
-export async function GET() {
-  const session = await auth()
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+export async function GET(request: NextRequest) {
+  const { session, error } = await requireSession(request)
+  if (error) return error
 
-  const accounts = await prisma.account.findMany({
-    where: { userId: session.user.id },
-    select: { provider: true },
-  })
+  const [user, accounts] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { name: true, email: true, image: true },
+    }),
+    prisma.account.findMany({
+      where: { userId: session.user.id },
+      select: { provider: true },
+    }),
+  ])
 
   return NextResponse.json({
     user: {
-      name: session.user.name,
-      email: session.user.email,
-      image: session.user.image,
+      name: user?.name ?? null,
+      email: user?.email ?? null,
+      image: user?.image ?? null,
     },
     providers: accounts.map((a) => a.provider),
   })

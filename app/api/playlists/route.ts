@@ -1,4 +1,5 @@
-import { auth } from '@/lib/auth'
+import { NextRequest } from 'next/server'
+import { requireSession } from '@/lib/auth-guard'
 import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
@@ -7,9 +8,9 @@ const MAX_PLAYLISTS = 50
 
 // GET — list user's playlists with song count
 // Auto-creates default "내 찜 목록" if user has no playlists yet
-export async function GET() {
-  const session = await auth()
-  if (!session?.user?.id) return Response.json(null, { status: 401 })
+export async function GET(req: NextRequest) {
+  const { session, error } = await requireSession(req)
+  if (error) return error
 
   // Auto-create default playlist on first access
   const hasAny = await prisma.playlist.findFirst({ where: { userId: session.user.id }, select: { id: true } })
@@ -48,11 +49,11 @@ export async function GET() {
 }
 
 // POST — create new playlist
-export async function POST(request: Request) {
-  const session = await auth()
-  if (!session?.user?.id) return Response.json(null, { status: 401 })
+export async function POST(req: NextRequest) {
+  const { session, error } = await requireSession(req)
+  if (error) return error
 
-  const { name } = await request.json()
+  const { name } = await req.json()
   if (!name?.trim()) return Response.json({ error: 'name required' }, { status: 400 })
 
   const count = await prisma.playlist.count({ where: { userId: session.user.id } })

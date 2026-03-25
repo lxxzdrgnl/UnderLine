@@ -1,10 +1,10 @@
 import { NextRequest } from 'next/server'
-import { auth } from '@/lib/auth'
+import { requireSession } from '@/lib/auth-guard'
 import { prisma } from '@/lib/prisma'
 
 export async function PATCH(request: NextRequest) {
-  const session = await auth()
-  if (!session?.user?.id) return Response.json(null, { status: 401 })
+  const { session, error } = await requireSession(request)
+  if (error) return error
 
   const { name } = await request.json()
   if (!name || typeof name !== 'string' || name.trim().length < 1 || name.trim().length > 20) {

@@ -1,12 +1,13 @@
-import { auth } from '@/lib/auth'
+import { NextRequest } from 'next/server'
+import { requireSession } from '@/lib/auth-guard'
 import { prisma } from '@/lib/prisma'
 
 interface Params { params: Promise<{ id: string }> }
 
 // GET — which of my playlists contain this song?
-export async function GET(_req: Request, { params }: Params) {
-  const session = await auth()
-  if (!session?.user?.id) return Response.json(null, { status: 401 })
+export async function GET(req: NextRequest, { params }: Params) {
+  const { session, error } = await requireSession(req)
+  if (error) return error
 
   const { id } = await params
 

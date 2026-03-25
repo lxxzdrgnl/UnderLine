@@ -41,6 +41,17 @@ async function refreshSpotifyToken(accountId: string, refreshToken: string): Pro
   return data.access_token
 }
 
+async function getValidSpotifyToken(
+  account: { id: string; access_token: string | null; refresh_token: string | null; expires_at: number | null }
+): Promise<string | null> {
+  if (!account.access_token) return null
+  if (account.expires_at && account.expires_at < Math.floor(Date.now() / 1000) + 30) {
+    if (!account.refresh_token) return null
+    return refreshSpotifyToken(account.id, account.refresh_token)
+  }
+  return account.access_token
+}
+
 export async function getNowPlaying(userId: string): Promise<NowPlayingTrack | null> {
   const account = await prisma.account.findFirst({
     where: { userId, provider: 'spotify' },
@@ -48,13 +59,8 @@ export async function getNowPlaying(userId: string): Promise<NowPlayingTrack | n
   if (!account?.access_token) return null
 
   // 토큰 만료 체크 — 30초 여유
-  let token = account.access_token
-  if (account.expires_at && account.expires_at < Math.floor(Date.now() / 1000) + 30) {
-    if (!account.refresh_token) return null
-    const refreshed = await refreshSpotifyToken(account.id, account.refresh_token)
-    if (!refreshed) return null
-    token = refreshed
-  }
+  const token = await getValidSpotifyToken(account)
+  if (!token) return null
 
   const res = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
     headers: { Authorization: `Bearer ${token}` },
@@ -95,13 +101,8 @@ export async function getSpotifyPlaylists(userId: string): Promise<SpotifyPlayli
   })
   if (!account?.access_token) return []
 
-  let token = account.access_token
-  if (account.expires_at && account.expires_at < Math.floor(Date.now() / 1000) + 30) {
-    if (!account.refresh_token) return []
-    const refreshed = await refreshSpotifyToken(account.id, account.refresh_token)
-    if (!refreshed) return []
-    token = refreshed
-  }
+  const token = await getValidSpotifyToken(account)
+  if (!token) return []
 
   const playlists: SpotifyPlaylist[] = []
   let url: string | null = 'https://api.spotify.com/v1/me/playlists?limit=50'
@@ -147,13 +148,8 @@ export async function getSpotifyPlaylistTracks(userId: string, playlistId: strin
   })
   if (!account?.access_token) return []
 
-  let token = account.access_token
-  if (account.expires_at && account.expires_at < Math.floor(Date.now() / 1000) + 30) {
-    if (!account.refresh_token) return []
-    const refreshed = await refreshSpotifyToken(account.id, account.refresh_token)
-    if (!refreshed) return []
-    token = refreshed
-  }
+  const token = await getValidSpotifyToken(account)
+  if (!token) return []
 
   const tracks: SpotifyTrack[] = []
   // 2026 Feb API change: /tracks → /items

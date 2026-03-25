@@ -1,4 +1,5 @@
-import { auth } from '@/lib/auth'
+import { NextRequest } from 'next/server'
+import { requireSession } from '@/lib/auth-guard'
 import { prisma } from '@/lib/prisma'
 
 interface Params { params: Promise<{ id: string }> }
@@ -30,9 +31,9 @@ async function ensureDefaultPlaylist(userId: string) {
 }
 
 // GET — songs in playlist ordered by position
-export async function GET(_req: Request, { params }: Params) {
-  const session = await auth()
-  if (!session?.user?.id) return Response.json(null, { status: 401 })
+export async function GET(req: NextRequest, { params }: Params) {
+  const { session, error } = await requireSession(req)
+  if (error) return error
 
   const { id } = await params
   const check = await verifyOwnership(id, session.user.id)
@@ -61,9 +62,9 @@ export async function GET(_req: Request, { params }: Params) {
 }
 
 // POST — add song to playlist (idempotent)
-export async function POST(request: Request, { params }: Params) {
-  const session = await auth()
-  if (!session?.user?.id) return Response.json(null, { status: 401 })
+export async function POST(req: NextRequest, { params }: Params) {
+  const { session, error } = await requireSession(req)
+  if (error) return error
 
   let { id } = await params
 
@@ -76,7 +77,7 @@ export async function POST(request: Request, { params }: Params) {
   const check = await verifyOwnership(id, session.user.id)
   if ('error' in check) return check.error
 
-  const { songId } = await request.json()
+  const { songId } = await req.json()
   if (!songId) return Response.json({ error: 'songId required' }, { status: 400 })
 
   const existing = await prisma.playlistSong.findUnique({
