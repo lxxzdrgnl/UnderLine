@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { fetchAlbumDetail, fetchAlbumTracks } from '@/lib/genius'
+import { SongLink } from '@/components/SongLink'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -94,9 +95,9 @@ export default async function AlbumPage({ params }: Props) {
         <section style={{ paddingTop: '24px' }}>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {tracks.map((track) => (
-              <a
+              <SongLink
                 key={track.genius_id}
-                href={`/songs/${track.genius_id}`}
+                song={track}
                 className="hover-row"
                 style={{
                   display: 'flex',
@@ -122,7 +123,7 @@ export default async function AlbumPage({ params }: Props) {
                     {track.artist}
                   </p>
                 </div>
-              </a>
+              </SongLink>
             ))}
           </div>
         </section>

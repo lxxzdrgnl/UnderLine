@@ -144,7 +144,7 @@ export async function fetchAlbumDetail(id: string): Promise<AlbumDetail | null> 
       release_date: album.release_date_for_display ?? null,
       artist_name: album.artist?.name ?? '',
       genius_artist_id: album.artist?.id ? String(album.artist.id) : null,
-      description: album.description?.plain?.trim() || null,
+      description: album.description?.plain?.trim() && album.description.plain.trim() !== '?' ? album.description.plain.trim() : null,
       track_count: album.song_performances?.[0]?.songs?.length ?? 0,
     }
   } catch {
@@ -199,7 +199,7 @@ export async function fetchArtistInfo(id: string): Promise<ArtistInfo | null> {
       id: String(artist.id),
       name: artist.name,
       image_url: artist.image_url ?? null,
-      description: artist.description?.plain?.trim() || null,
+      description: artist.description?.plain?.trim() && artist.description.plain.trim() !== '?' ? artist.description.plain.trim() : null,
     }
   } catch {
     return null
