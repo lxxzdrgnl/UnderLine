@@ -181,7 +181,11 @@ export interface ArtistInfo {
   id: string
   name: string
   image_url: string | null
+  header_image_url: string | null
   description: string | null
+  alternate_names: string[]
+  is_verified: boolean
+  social_links: { instagram?: string; twitter?: string; facebook?: string }
 }
 
 export interface ArtistSong {
@@ -195,11 +199,16 @@ export async function fetchArtistInfo(id: string): Promise<ArtistInfo | null> {
   try {
     const data = await geniusFetch(`/artists/${id}?text_format=plain`, 86400)
     const artist = data.response.artist
+    const desc = artist.description?.plain?.trim()
     return {
       id: String(artist.id),
       name: artist.name,
       image_url: artist.image_url ?? null,
-      description: artist.description?.plain?.trim() && artist.description.plain.trim() !== '?' ? artist.description.plain.trim() : null,
+      header_image_url: artist.header_image_url ?? null,
+      description: desc && desc !== '?' ? desc : null,
+      alternate_names: Array.isArray(artist.alternate_names) ? artist.alternate_names : [],
+      is_verified: !!artist.is_verified,
+      social_links: artist.social_links ?? {},
     }
   } catch {
     return null

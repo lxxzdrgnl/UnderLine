@@ -219,6 +219,8 @@ header { padding: 0 28px; }
   .main-content { padding: 0 16px; }
   header { padding: 0 16px; }
   .profile-hero { flex-direction: column; align-items: center !important; text-align: center; gap: 16px !important; }
+  .artist-hero > div:last-child { flex-direction: column; align-items: center !important; text-align: center; gap: 20px !important; padding-top: 40px !important; }
+  .artist-hero-img { width: 140px !important; height: 140px !important; }
   .profile-hero h1 { font-size: 24px !important; justify-content: center; }
   .profile-avatar { width: 96px !important; height: 96px !important; }
 }

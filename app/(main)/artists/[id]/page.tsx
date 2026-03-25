@@ -5,6 +5,7 @@ import { translateText } from '@/lib/gpt'
 import { fetchSpotifyArtistAlbums } from '@/lib/spotify'
 import { prisma } from '@/lib/prisma'
 import { ArtistSongs } from './ArtistSongs'
+import { ArtistBio } from './ArtistBio'
 import { AlbumGrid } from './AlbumGrid'
 
 async function AlbumsSection({ artistName, artistId, songIds }: { artistName: string; artistId: string; songIds: string[] }) {
@@ -128,54 +129,110 @@ export default async function ArtistPage({ params }: Props) {
 
       {/* ── Hero ───────────────────────────────────────── */}
       <div
+        className="artist-hero"
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '28px',
-          padding: '40px max(16px, calc(50vw - 566px)) 32px',
+          position: 'relative',
           marginLeft: 'calc(-50vw + 50%)',
           marginRight: 'calc(-50vw + 50%)',
           borderBottom: '1px solid var(--border)',
-          background: 'linear-gradient(to bottom, rgba(255,255,255,0.04) 0%, transparent 100%)',
+          overflow: 'hidden',
         }}
       >
-        {artist.image_url && (
-          <img
-            src={artist.image_url}
-            alt={artist.name}
-            style={{
-              width: '140px',
-              height: '140px',
-              borderRadius: '50%',
-              objectFit: 'cover',
-              flexShrink: 0,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
-            }}
-          />
+        {/* Background banner */}
+        {artist.header_image_url && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            backgroundImage: `url(${artist.header_image_url})`,
+            backgroundSize: 'cover', backgroundPosition: 'center',
+            opacity: 0.15, filter: 'blur(20px) saturate(1.2)',
+          }} />
         )}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ margin: '0 0 6px', fontSize: 'var(--text-xs)', color: 'var(--text-faint)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-            아티스트
-          </p>
-          <h1
-            style={{
-              margin: '0 0 12px',
-              fontSize: 'clamp(28px, 6vw, 52px)',
-              fontWeight: 400,
-              color: 'var(--text)',
-              letterSpacing: '-0.02em',
-              lineHeight: 1.1,
-            }}
-          >
-            {artist.name}
-          </h1>
-          {(bioKo || artist.description) && (
-            <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-muted)', lineHeight: 1.7, maxWidth: '640px' }}>
-              {bioKo ?? artist.description}
-            </p>
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(to top, var(--bg) 0%, transparent 60%)',
+        }} />
+
+        <div
+          style={{
+            position: 'relative',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+            gap: '20px',
+            padding: '80px max(16px, calc(50vw - 566px)) 32px',
+          }}
+        >
+          {artist.image_url && (
+            <img
+              src={artist.image_url}
+              alt={artist.name}
+              className="artist-hero-img"
+              style={{
+                width: '160px', height: '160px',
+                borderRadius: '50%', objectFit: 'cover', flexShrink: 0,
+                boxShadow: '0 12px 40px rgba(0,0,0,0.7)',
+                border: '3px solid rgba(255,255,255,0.1)',
+              }}
+            />
           )}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <p style={{ margin: '0 0 6px', fontSize: 'var(--text-xs)', color: 'var(--text-faint)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+              아티스트
+            </p>
+            <h1
+              style={{
+                margin: '0 0 8px',
+                fontSize: 'clamp(32px, 7vw, 56px)',
+                fontWeight: 700,
+                color: 'var(--text)',
+                letterSpacing: '-0.03em',
+                lineHeight: 1.05,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', flexWrap: 'wrap',
+              }}
+            >
+              {artist.name}
+              {artist.is_verified && (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--accent)" stroke="none" style={{ flexShrink: 0 }}>
+                  <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+              )}
+            </h1>
+
+            {/* Alternate names */}
+            {artist.alternate_names.length > 0 && (
+              <p style={{ margin: '0 0 12px', fontSize: 'var(--text-xs)', color: 'var(--text-faint)' }}>
+                a.k.a. {artist.alternate_names.slice(0, 4).join(' · ')}
+              </p>
+            )}
+
+            {/* Social links */}
+            {Object.keys(artist.social_links).length > 0 && (
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                {artist.social_links.instagram && (
+                  <a href={`https://instagram.com/${artist.social_links.instagram}`} target="_blank" rel="noopener noreferrer" className="nav-icon-btn" style={{ color: 'var(--text-faint)', display: 'flex', opacity: 0.6, transition: 'opacity 150ms' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                  </a>
+                )}
+                {artist.social_links.twitter && (
+                  <a href={`https://x.com/${artist.social_links.twitter}`} target="_blank" rel="noopener noreferrer" className="nav-icon-btn" style={{ color: 'var(--text-faint)', display: 'flex', opacity: 0.6, transition: 'opacity 150ms' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                  </a>
+                )}
+                {artist.social_links.facebook && (
+                  <a href={`https://facebook.com/${artist.social_links.facebook}`} target="_blank" rel="noopener noreferrer" className="nav-icon-btn" style={{ color: 'var(--text-faint)', display: 'flex', opacity: 0.6, transition: 'opacity 150ms' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* ── Bio ──────────────────────────────────────── */}
+      {(bioKo || artist.description) && (
+        <div style={{ padding: '24px 0 0' }}>
+          <ArtistBio text={bioKo ?? artist.description!} />
+        </div>
+      )}
 
       {/* ── Albums ─────────────────────────────────────── */}
       <AlbumsSection artistName={artist.name} artistId={id} songIds={songs.map((s) => s.genius_id)} />
