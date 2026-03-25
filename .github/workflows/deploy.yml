@@ -1,0 +1,48 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PC_SSH_KEY }}" > ~/.ssh/pc_key
+          chmod 600 ~/.ssh/pc_key
+          ssh-keyscan -H ${{ secrets.PC_SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Write .env
+        env:
+          APP_ENV: ${{ secrets.APP_ENV }}
+        run: |
+          echo "$APP_ENV" > app.env
+          scp -i ~/.ssh/pc_key app.env \
+            ${{ secrets.PC_SSH_USER }}@${{ secrets.PC_SSH_HOST }}:~/servers/underline/.env
+          rm -f app.env
+
+      - name: Deploy to server
+        run: |
+          ssh -i ~/.ssh/pc_key \
+            ${{ secrets.PC_SSH_USER }}@${{ secrets.PC_SSH_HOST }} \
+            "cd ~/servers/underline/repo && \
+             git fetch origin && git reset --hard origin/main && \
+             cd ~/servers && \
+             docker compose up -d --build --no-deps under-line && \
+             echo '⏳ Waiting for startup...' && \
+             sleep 10 && \
+             docker logs under-line --tail=20 && \
+             docker inspect -f '{{.State.Running}}' under-line | grep -q 'true' && \
+             echo '✅ Deployed' || (echo '❌ Failed' && exit 1)"
+
+      - name: Cleanup SSH Key
+        if: always()
+        run: rm -f ~/.ssh/pc_key
