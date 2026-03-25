@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { auth } from '@/lib/auth'
+import { UserDropdown } from '@/components/nav/UserDropdown'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,21 +53,19 @@ export default async function MainLayout({ children }: { children: React.ReactNo
         </Link>
 
         <nav style={{ display: 'flex', alignItems: 'center', gap: '20px', fontSize: 'var(--text-sm)' }}>
+          <Link
+            href="/search"
+            style={{
+              color: 'var(--text-muted)',
+              textDecoration: 'none',
+              fontSize: 'var(--text-sm)',
+            }}
+            className="hover-dim"
+          >
+            검색
+          </Link>
           {session ? (
-            <Link href="/profile" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-              {session.user?.image && (
-                <img
-                  src={session.user.image}
-                  alt=""
-                  style={{
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '50%',
-                    border: '1px solid var(--border-strong)',
-                  }}
-                />
-              )}
-            </Link>
+            <UserDropdown user={{ image: session.user?.image, name: session.user?.name }} />
           ) : (
             <Link
               href="/login"
