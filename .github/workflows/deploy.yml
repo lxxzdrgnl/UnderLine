@@ -35,6 +35,10 @@ jobs:
             ${{ secrets.PC_SSH_USER }}@${{ secrets.PC_SSH_HOST }} \
             "cd ~/servers/underline/repo && \
              git fetch origin && git reset --hard origin/main && \
+             docker run --rm --network servers_blueming-net \
+               -e DATABASE_URL=\"\$(grep DATABASE_URL ~/servers/underline/.env | cut -d'=' -f2- | tr -d '\"')\" \
+               -v ~/servers/underline/repo:/app -w /app node:22-alpine \
+               sh -c 'npx prisma migrate deploy' && \
              cd ~/servers && \
              docker compose up -d --build --no-deps under-line && \
              echo '⏳ Waiting for startup...' && \

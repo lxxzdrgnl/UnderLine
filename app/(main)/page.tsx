@@ -25,24 +25,38 @@ export default async function HomePage() {
     >
       {/* Hero */}
       <div style={{ textAlign: 'center', maxWidth: '560px' }}>
-        <p style={{ margin: '0 0 16px', fontSize: '13px', letterSpacing: '0.12em', color: 'var(--accent)', fontWeight: 600, textTransform: 'uppercase' }}>
-          AI Lyrics Interpreter
+        <p style={{ margin: '0 0 20px', fontSize: '14px', color: 'var(--text-muted)', letterSpacing: '0.02em' }}>
+          가사의 숨겨진 의미
         </p>
         <h1
           style={{
-            margin: '0 0 16px',
-            fontSize: 'clamp(32px, 5vw, 52px)',
+            margin: '0 0 20px',
+            fontSize: 'clamp(40px, 6vw, 64px)',
             fontFamily: "'DM Serif Display', Georgia, serif",
             fontWeight: 400,
-            letterSpacing: '-0.02em',
+            letterSpacing: '-0.03em',
             color: 'var(--text)',
-            lineHeight: 1.1,
+            lineHeight: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0',
           }}
         >
-          가사의 숨겨진 의미
+          under
+          <span style={{
+            display: 'inline-block',
+            width: 'clamp(20px, 3vw, 32px)',
+            height: '3px',
+            background: 'var(--accent)',
+            margin: '0 3px 6px',
+            borderRadius: '2px',
+            flexShrink: 0,
+          }} />
+          line
         </h1>
-        <p style={{ margin: 0, fontSize: '16px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-          슬랭, 문화적 맥락, 숨은 뜻까지 — 한 줄 한 줄 해석해드립니다
+        <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-muted)', letterSpacing: '0.02em' }}>
+          한 줄 한 줄, 진짜 의미를 찾아보세요
         </p>
       </div>
 
