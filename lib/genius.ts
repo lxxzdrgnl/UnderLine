@@ -12,6 +12,8 @@ async function geniusFetch(path: string, revalidate = 0) {
   return res.json()
 }
 
+export { geniusFetch as geniusFetchRaw }
+
 export async function searchSongs(query: string): Promise<GeniusSearchResult[]> {
   const params = new URLSearchParams({ q: query, per_page: '10' })
   const data = await geniusFetch(`/search?${params}`)
