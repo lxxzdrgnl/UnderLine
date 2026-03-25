@@ -1,8 +1,24 @@
 # under-line
 
-Discover the hidden meaning behind lyrics — line by line.
+![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=next.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white)
+![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o-412991?style=flat-square&logo=openai&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-7-2D3748?style=flat-square&logo=prisma&logoColor=white)
+![Genius](https://img.shields.io/badge/Genius-API-FFFF64?style=flat-square&logoColor=black)
 
-Search any song, get Korean translations and AI-powered interpretations for every line. Click a line to see slang explanations and cultural context drawn from Genius community annotations.
+**가사 한 줄 한 줄의 숨겨진 의미를 찾아드립니다.**
+
+> "번역" (X)
+> "이 줄에서 아티스트가 말하는 건 사실 이거야" (O)
+
+---
+
+## Production
+
+- **App**: https://underline.rheon.kr
+- **API Docs**: https://underline.rheon.kr/docs
+- **Health**: https://underline.rheon.kr/api/system/health
 
 ---
 
