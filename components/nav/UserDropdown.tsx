@@ -8,9 +8,21 @@ interface Props {
 }
 
 const menuItems = [
-  { label: 'Recents', href: '/recents' },
-  { label: '플레이리스트', href: '/playlists' },
-  { label: '설정', href: '/profile' },
+  { label: '최근 검색', href: '/recents', icon: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+    </svg>
+  )},
+  { label: '플레이리스트', href: '/playlists', icon: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+    </svg>
+  )},
+  { label: '프로필', href: '/profile', icon: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+    </svg>
+  )},
 ]
 
 export function UserDropdown({ user }: Props) {
@@ -30,13 +42,19 @@ export function UserDropdown({ user }: Props) {
     <div ref={ref} style={{ position: 'relative' }}>
       <button
         onClick={() => setOpen(!open)}
+        className="nav-icon-btn"
         style={{
-          background: 'none',
+          background: open ? 'rgba(255,255,255,0.1)' : 'transparent',
           border: 'none',
           cursor: 'pointer',
           padding: 0,
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'center',
+          width: '32px',
+          height: '32px',
+          borderRadius: '50%',
+          transition: 'background 150ms',
         }}
       >
         {user.image ? (
@@ -44,22 +62,29 @@ export function UserDropdown({ user }: Props) {
             src={user.image}
             alt=""
             style={{
-              width: '28px',
-              height: '28px',
+              width: '26px',
+              height: '26px',
               borderRadius: '50%',
-              border: '1px solid var(--border-strong)',
+              objectFit: 'cover',
             }}
           />
         ) : (
           <div
             style={{
-              width: '28px',
-              height: '28px',
+              width: '26px',
+              height: '26px',
               borderRadius: '50%',
-              background: 'var(--bg-subtle)',
-              border: '1px solid var(--border-strong)',
+              background: 'var(--bg-elevated)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+              fontWeight: 700,
+              color: 'var(--text-faint)',
             }}
-          />
+          >
+            {user.name?.[0]?.toUpperCase() ?? '?'}
+          </div>
         )}
       </button>
 
@@ -69,29 +94,42 @@ export function UserDropdown({ user }: Props) {
             position: 'absolute',
             right: 0,
             top: 'calc(100% + 8px)',
-            background: 'var(--bg-elevated)',
-            borderRadius: 'var(--r-lg)',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-            minWidth: '180px',
-            padding: '6px 0',
+            background: '#282828',
+            borderRadius: '8px',
+            boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
+            minWidth: '200px',
+            padding: '4px',
             zIndex: 60,
+            transformOrigin: 'top right',
+            animation: 'dropdown-in 120ms var(--ease) both',
           }}
         >
+          {/* User info */}
+          <div style={{ padding: '12px 14px 8px', borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: '4px' }}>
+            <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>
+              {user.name ?? '사용자'}
+            </p>
+          </div>
+
           {menuItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               onClick={() => setOpen(false)}
+              className="nav-dropdown-item"
               style={{
-                display: 'block',
-                padding: '10px 16px',
-                fontSize: 'var(--text-sm)',
-                color: 'var(--text)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '10px 14px',
+                fontSize: '13px',
+                color: 'var(--text-muted)',
                 textDecoration: 'none',
-                transition: 'background var(--dur)',
+                borderRadius: '4px',
+                transition: 'background 80ms, color 80ms',
               }}
-              className="hover-row"
             >
+              <span style={{ display: 'flex', flexShrink: 0 }}>{item.icon}</span>
               {item.label}
             </Link>
           ))}
