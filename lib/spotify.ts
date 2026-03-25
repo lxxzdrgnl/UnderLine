@@ -1,5 +1,65 @@
 import { prisma } from '@/lib/prisma'
 
+// ─── Client Credentials (no user auth needed) ─────────────────
+let clientToken: string | null = null
+let clientTokenExpiresAt = 0
+
+async function getSpotifyClientToken(): Promise<string | null> {
+  if (clientToken && clientTokenExpiresAt > Date.now() + 30_000) return clientToken
+  const creds = Buffer.from(
+    `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`
+  ).toString('base64')
+  const res = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: { Authorization: `Basic ${creds}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ grant_type: 'client_credentials' }),
+  })
+  if (!res.ok) return null
+  const data = await res.json() as { access_token: string; expires_in: number }
+  clientToken = data.access_token
+  clientTokenExpiresAt = Date.now() + data.expires_in * 1000
+  return clientToken
+}
+
+export interface SpotifyAlbum {
+  id: string
+  name: string
+  image_url: string | null
+  release_date: string | null
+  album_type: string
+}
+
+export async function fetchSpotifyArtistAlbums(artistName: string): Promise<SpotifyAlbum[]> {
+  const token = await getSpotifyClientToken()
+  if (!token) return []
+
+  // 1. Search for artist
+  const searchRes = await fetch(
+    `https://api.spotify.com/v1/search?q=${encodeURIComponent(artistName)}&type=artist&limit=1`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  )
+  if (!searchRes.ok) return []
+  const searchData = await searchRes.json()
+  const spotifyArtist = searchData.artists?.items?.[0]
+  if (!spotifyArtist) return []
+
+  // 2. Get albums
+  const albumsRes = await fetch(
+    `https://api.spotify.com/v1/artists/${spotifyArtist.id}/albums?include_groups=album,single&limit=10&market=KR`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  )
+  if (!albumsRes.ok) return []
+  const albumsData = await albumsRes.json()
+
+  return (albumsData.items ?? []).map((a: { id: string; name: string; images: { url: string }[]; release_date: string; album_type: string }) => ({
+    id: a.id,
+    name: a.name,
+    image_url: a.images?.[0]?.url ?? null,
+    release_date: a.release_date ?? null,
+    album_type: a.album_type,
+  }))
+}
+
 export interface NowPlayingTrack {
   title: string
   artist: string

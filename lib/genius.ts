@@ -210,7 +210,7 @@ export async function fetchArtistSongs(id: string, page = 1): Promise<ArtistSong
   try {
     const params = new URLSearchParams({
       sort: 'popularity',
-      per_page: '10',
+      per_page: '20',
       page: String(page),
     })
     const data = await geniusFetch(`/artists/${id}/songs?${params}`, 3600)
@@ -229,6 +229,7 @@ export async function fetchArtistSongs(id: string, page = 1): Promise<ArtistSong
     return []
   }
 }
+
 
 // ─── Romanization helpers ──────────────────────────────────
 
