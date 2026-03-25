@@ -5,7 +5,7 @@ import { LyricLine } from './LyricLine'
 import { InterpretationPanel } from './InterpretationPanel'
 import type { LyricLineData } from '@/types'
 
-type Status = 'loading' | 'processing' | 'streaming' | 'done' | 'error'
+type Status = 'loading' | 'processing' | 'streaming' | 'done' | 'error' | 'empty'
 
 export function LyricsView({ songId }: { songId: string }) {
   const [lines, setLines] = useState<LyricLineData[]>([])
@@ -68,6 +68,7 @@ export function LyricsView({ songId }: { songId: string }) {
           if (!part.trim()) continue
           try {
             const obj = JSON.parse(part)
+            if (obj.no_lyrics) { setStatus('empty'); return }
             if (obj.error) { setStatus('error'); return }
             setLines((prev) => {
               // Deduplicate by line_number to guard against race conditions
@@ -97,6 +98,35 @@ export function LyricsView({ songId }: { songId: string }) {
       if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
     }
   }, [loadLyrics])
+
+  // Clamp panel so it doesn't overflow the parent column
+  useEffect(() => {
+    if (!panelRef.current || !panelColRef.current || !selectedLine) return
+    const parentH = panelColRef.current.clientHeight
+    const panelH = panelRef.current.clientHeight
+    if (panelTop + panelH > parentH) {
+      setClampedTop(Math.max(0, parentH - panelH))
+    } else {
+      setClampedTop(panelTop)
+    }
+  }, [panelTop, selectedLine])
+
+  if (status === 'empty') {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '80px 0',
+          color: 'var(--text-faint)',
+          fontSize: 'var(--text-sm)',
+        }}
+      >
+        가사가 없는 곡입니다.
+      </div>
+    )
+  }
 
   if (status === 'processing') {
     return (
@@ -161,18 +191,6 @@ export function LyricsView({ songId }: { songId: string }) {
     if (el) setPanelTop(el.offsetTop)
     setSelectedLine(line)
   }
-
-  // Clamp panel so it doesn't overflow the parent column
-  useEffect(() => {
-    if (!panelRef.current || !panelColRef.current || !selectedLine) return
-    const parentH = panelColRef.current.clientHeight
-    const panelH = panelRef.current.clientHeight
-    if (panelTop + panelH > parentH) {
-      setClampedTop(Math.max(0, parentH - panelH))
-    } else {
-      setClampedTop(panelTop)
-    }
-  }, [panelTop, selectedLine])
 
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 0, flexWrap: 'nowrap', position: 'relative' }}>

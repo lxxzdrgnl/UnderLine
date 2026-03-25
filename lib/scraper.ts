@@ -45,6 +45,5 @@ export async function scrapeLyrics(geniusPath: string): Promise<string> {
 
   const html = await res.text()
   const raw = parseRawLyrics(html)
-  if (!raw) throw new Error('No lyrics container found on page')
   return raw
 }

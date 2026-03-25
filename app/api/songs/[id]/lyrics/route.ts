@@ -123,6 +123,12 @@ export async function GET(
           logger.info('lyrics: scraping', { path: scrapePath })
           rawLyrics = await scrapeLyrics(scrapePath)
           logger.info('lyrics: scraped', { lines: rawLyrics.split('\n').length })
+          if (!rawLyrics) {
+            logger.info('lyrics: no lyrics found', { songId: id })
+            await prisma.song.update({ where: { id }, data: { lyrics_status: 'DONE' } })
+            controller.enqueue(encoder.encode(JSON.stringify({ no_lyrics: true }) + '\n'))
+            return
+          }
           const rawAnnotations = await fetchReferentsRaw(song.genius_id)
           referentsContext = rawAnnotations ? formatReferents(rawAnnotations) : ''
           await prisma.songLyricsRaw.create({

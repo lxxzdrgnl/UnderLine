@@ -158,25 +158,15 @@ export function SearchBar({ isLoggedIn = false, onOpenChange }: Props) {
   }, [loadingMore, hasMore, searchPage])
 
   // ── Select song ────────────────────────────────────────
-  const handleSelect = async (result: SearchResult) => {
-    await saveHistory({
+  const handleSelect = (result: SearchResult) => {
+    saveHistory({
       genius_id: result.genius_id,
       title: result.title,
       artist: result.artist,
       image_url: result.image_url,
     })
-    let songId = result.db_id
-    if (!songId) {
-      const res = await fetch('/api/songs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(result),
-      })
-      const data = await res.json()
-      songId = data.id
-    }
     setIsFocused(false)
-    router.push(`/songs/${songId}`)
+    router.push(`/songs/${result.db_id ?? result.genius_id}`)
   }
 
   // ── Navigate from history ──────────────────────────────
