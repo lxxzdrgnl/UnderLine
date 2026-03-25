@@ -11,7 +11,7 @@ export async function GET() {
 
   const rows = await prisma.searchHistory.findMany({
     where: { userId: session.user.id },
-    orderBy: { created_at: 'desc' },
+    orderBy: { updatedAt: 'desc' },
     take: 10,
     select: { id: true, genius_id: true, title: true, artist: true, image_url: true },
   })
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
   await prisma.searchHistory.upsert({
     where: { userId_genius_id: { userId: session.user.id, genius_id } },
     create: { userId: session.user.id, genius_id, title, artist, image_url: image_url ?? null },
-    update: { created_at: new Date(), title, artist, image_url: image_url ?? null },
+    update: { title, artist, image_url: image_url ?? null },
   })
   return Response.json({ ok: true })
 }
