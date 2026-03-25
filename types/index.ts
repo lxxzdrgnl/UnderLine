@@ -5,6 +5,15 @@ export interface SongMeta {
   artist: string
   image_url: string | null
   genius_path: string
+  album: string | null
+  album_image_url: string | null
+  release_date: string | null
+  description: string | null
+  spotify_url: string | null
+  youtube_url: string | null
+  apple_music_url: string | null
+  genius_artist_id: string | null
+  genius_album_id: string | null
 }
 
 export interface LyricLineData {

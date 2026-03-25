@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { LyricLine } from './LyricLine'
 import { InterpretationPanel } from './InterpretationPanel'
 import type { LyricLineData } from '@/types'
@@ -11,24 +11,34 @@ export function LyricsView({ songId }: { songId: string }) {
   const [lines, setLines] = useState<LyricLineData[]>([])
   const [status, setStatus] = useState<Status>('loading')
   const [selectedLine, setSelectedLine] = useState<LyricLineData | null>(null)
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
+  const [panelTop, setPanelTop] = useState(0)
+  const abortRef = useRef<AbortController | null>(null)
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lineRefs = useRef<Map<number, HTMLDivElement>>(new Map())
 
   const loadLyrics = useCallback(async () => {
+    // Cancel any in-flight request and pending retry
+    abortRef.current?.abort()
+    if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
+
+    const controller = new AbortController()
+    abortRef.current = controller
+
     setStatus('loading')
     setLines([])
 
-    const res = await fetch(`/api/songs/${songId}/lyrics`)
+    let res: Response
+    try {
+      res = await fetch(`/api/songs/${songId}/lyrics`, { signal: controller.signal })
+    } catch (e) {
+      if ((e as Error).name === 'AbortError') return
+      setStatus('error')
+      return
+    }
 
     if (res.status === 202) {
       setStatus('processing')
-      setTimeout(loadLyrics, 3000)
+      retryTimerRef.current = setTimeout(loadLyrics, 3000)
       return
     }
 
@@ -56,40 +66,82 @@ export function LyricsView({ songId }: { songId: string }) {
           try {
             const obj = JSON.parse(part)
             if (obj.error) { setStatus('error'); return }
-            setLines((prev) => [...prev, {
-              line_number: obj.line,
-              original: obj.original,
-              translation: obj.translation,
-              slang: obj.slang,
-              explanation: obj.explanation,
-            }])
+            setLines((prev) => {
+              // Deduplicate by line_number to guard against race conditions
+              if (prev.some((l) => l.line_number === obj.line)) return prev
+              return [...prev, {
+                line_number: obj.line,
+                original: obj.original,
+                translation: obj.translation,
+                slang: obj.slang,
+                explanation: obj.explanation,
+              }]
+            })
           } catch { /* ignore parse failures */ }
         }
       }
       setStatus('done')
-    } catch {
+    } catch (e) {
+      if ((e as Error).name === 'AbortError') return
       setStatus('error')
     }
   }, [songId])
 
-  useEffect(() => { loadLyrics() }, [loadLyrics])
+  useEffect(() => {
+    loadLyrics()
+    return () => {
+      abortRef.current?.abort()
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
+    }
+  }, [loadLyrics])
 
   if (status === 'processing') {
     return (
-      <div className="flex flex-col items-center gap-3 py-20 text-zinc-500">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600" />
-        <p className="text-sm">다른 사용자가 이 곡을 처리 중입니다. 잠시 후 자동으로 업데이트됩니다.</p>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '12px',
+          padding: '80px 0',
+          color: 'var(--text-muted)',
+        }}
+      >
+        <div className="spinner" />
+        <p style={{ margin: 0, fontSize: '13px' }}>
+          다른 사용자가 이 곡을 처리 중입니다. 잠시 후 자동으로 업데이트됩니다.
+        </p>
       </div>
     )
   }
 
   if (status === 'error') {
     return (
-      <div className="flex flex-col items-center gap-4 py-20 text-zinc-500">
-        <p>가사를 불러오는 데 실패했습니다.</p>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '16px',
+          padding: '80px 0',
+          color: 'var(--text-muted)',
+        }}
+      >
+        <p style={{ margin: 0 }}>가사를 불러오는 데 실패했습니다.</p>
         <button
           onClick={loadLyrics}
-          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm text-white dark:bg-white dark:text-zinc-900"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            padding: '6px 16px',
+            borderRadius: 'var(--r-sm)',
+            fontSize: '13px',
+            fontWeight: 500,
+            cursor: 'pointer',
+            border: 'none',
+            background: 'var(--accent)',
+            color: '#000',
+          }}
         >
           다시 시도
         </button>
@@ -97,43 +149,85 @@ export function LyricsView({ songId }: { songId: string }) {
     )
   }
 
+  const handleLineClick = (line: LyricLineData) => {
+    if (selectedLine?.line_number === line.line_number) {
+      setSelectedLine(null)
+      return
+    }
+    const el = lineRefs.current.get(line.line_number)
+    if (el) setPanelTop(el.offsetTop)
+    setSelectedLine(line)
+  }
+
   return (
-    <>
-      <div className="flex h-full gap-8">
-        <div className={`overflow-y-auto ${isMobile ? 'w-full' : 'w-3/5'}`}>
-          {status === 'loading' && (
-            <div className="space-y-3 py-4">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="h-4 w-full animate-pulse rounded bg-zinc-100 dark:bg-zinc-800" />
-              ))}
-            </div>
-          )}
-          <div className="space-y-0.5 py-4">
-            {lines.map((line) => (
-              <LyricLine
-                key={line.line_number}
-                line={line}
-                isSelected={selectedLine?.line_number === line.line_number}
-                onClick={() => setSelectedLine(line)}
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 0, flexWrap: 'nowrap', position: 'relative' }}>
+      {/* 가사 컬럼 */}
+      <div style={{ flex: '0 0 58%', paddingTop: '16px', paddingBottom: '16px', paddingRight: '20px' }}>
+        {status === 'loading' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div
+                key={i}
+                className="skeleton"
+                style={{ height: '16px', width: `${60 + (i % 3) * 15}%` }}
               />
             ))}
           </div>
-        </div>
+        )}
+        {lines.map((line) => (
+          <div
+            key={line.line_number}
+            ref={(el) => {
+              if (el) lineRefs.current.set(line.line_number, el)
+              else lineRefs.current.delete(line.line_number)
+            }}
+          >
+            <LyricLine
+              line={line}
+              isSelected={selectedLine?.line_number === line.line_number}
+              onClick={() => handleLineClick(line)}
+            />
+            {selectedLine?.line_number === line.line_number && (
+              <div
+                className="lyrics-inline-panel"
+                style={{
+                  margin: '4px 0 12px',
+                  borderRadius: 'var(--r-md)',
+                  border: '1px solid var(--border)',
+                  background: 'var(--bg-surface)',
+                  overflow: 'hidden',
+                }}
+              >
+                <InterpretationPanel line={line} mode="panel" />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
 
-        {!isMobile && (
-          <div className="w-2/5 border-l border-zinc-100 dark:border-zinc-800">
+      {/* 패널 컬럼 — 가사 컬럼 바로 옆, 클릭한 라인 Y 위치에 absolute */}
+      <div
+        className="lyrics-panel-col"
+        style={{
+          flex: '0 0 42%',
+          position: 'relative',
+          alignSelf: 'stretch',
+          borderLeft: '1px solid var(--border)',
+        }}
+      >
+        {selectedLine && (
+          <div
+            style={{
+              position: 'absolute',
+              top: panelTop,
+              left: 0,
+              right: 0,
+            }}
+          >
             <InterpretationPanel line={selectedLine} mode="panel" />
           </div>
         )}
       </div>
-
-      {isMobile && (
-        <InterpretationPanel
-          line={selectedLine}
-          mode="modal"
-          onClose={() => setSelectedLine(null)}
-        />
-      )}
-    </>
+    </div>
   )
 }

@@ -10,22 +10,60 @@ interface Props {
 
 export function InterpretationPanel({ line, onClose, mode }: Props) {
   const content = line ? (
-    <div className="space-y-4 p-6">
-      <p className="text-lg font-medium leading-relaxed">{line.original}</p>
+    <div style={{ padding: '16px' }}>
+      <p
+        style={{
+          margin: '0 0 16px',
+          fontSize: 'var(--text-lg)',
+          fontWeight: 500,
+          lineHeight: 1.6,
+          color: 'var(--text)',
+        }}
+      >
+        {line.original}
+      </p>
       {line.translation && (
-        <p className="text-zinc-500 dark:text-zinc-400">{line.translation}</p>
+        <p style={{ margin: '0 0 16px', fontSize: 'var(--text-base)', color: 'var(--text-muted)' }}>
+          {line.translation}
+        </p>
       )}
       {line.slang && (
-        <div className="rounded-lg bg-amber-50 px-4 py-3 dark:bg-amber-950/30">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
+        <div
+          style={{
+            borderRadius: 'var(--r-md)',
+            background: 'var(--accent-bg)',
+            padding: '12px 16px',
+            marginBottom: '12px',
+            border: '1px solid color-mix(in srgb, var(--accent) 20%, transparent)',
+          }}
+        >
+          <p
+            style={{
+              margin: '0 0 6px',
+              fontSize: 'var(--text-xs)',
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: 'var(--accent)',
+            }}
+          >
             슬랭
           </p>
-          <p className="text-sm text-amber-900 dark:text-amber-200">{line.slang}</p>
+          <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text)', lineHeight: 1.6 }}>
+            {line.slang}
+          </p>
         </div>
       )}
       {line.explanation && (
-        <div className="rounded-lg bg-zinc-50 px-4 py-3 dark:bg-zinc-800">
-          <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
+        <div
+          style={{
+            borderRadius: 'var(--r-md)',
+            background: 'var(--bg-surface)',
+            padding: '12px 16px',
+            border: '1px solid var(--border)',
+          }}
+        >
+          <p style={{ margin: 0, fontSize: 'var(--text-sm)', lineHeight: 1.7, color: 'var(--text)' }}>
             {line.explanation}
           </p>
         </div>
@@ -33,7 +71,17 @@ export function InterpretationPanel({ line, onClose, mode }: Props) {
     </div>
   ) : (
     mode === 'panel' ? (
-      <div className="flex h-full items-center justify-center text-sm text-zinc-400">
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '32px 16px',
+          fontSize: '13px',
+          color: 'var(--text-faint)',
+          textAlign: 'center',
+        }}
+      >
         줄을 클릭하면 해석이 나타납니다
       </div>
     ) : null
@@ -42,13 +90,42 @@ export function InterpretationPanel({ line, onClose, mode }: Props) {
   if (mode === 'modal') {
     if (!line) return null
     return (
-      <div className="fixed inset-0 z-50 flex items-end" onClick={onClose}>
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 50,
+          display: 'flex',
+          alignItems: 'flex-end',
+          background: 'rgba(0,0,0,0.4)',
+        }}
+        onClick={onClose}
+      >
         <div
-          className="max-h-[70vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-2xl dark:bg-zinc-900"
+          style={{
+            maxHeight: '70vh',
+            width: '100%',
+            overflowY: 'auto',
+            borderRadius: 'var(--r-lg) var(--r-lg) 0 0',
+            background: 'var(--bg)',
+            boxShadow: '0 -8px 40px rgba(0,0,0,0.12)',
+          }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex justify-end p-2">
-            <button onClick={onClose} className="p-2 text-zinc-400 hover:text-zinc-600">✕</button>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '8px' }}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '8px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text-muted)',
+                fontSize: '16px',
+              }}
+            >
+              ✕
+            </button>
           </div>
           {content}
         </div>
@@ -56,5 +133,9 @@ export function InterpretationPanel({ line, onClose, mode }: Props) {
     )
   }
 
-  return <div className="h-full overflow-y-auto">{content}</div>
+  return (
+    <div style={{ height: '100%', overflowY: 'auto' }}>
+      {content}
+    </div>
+  )
 }

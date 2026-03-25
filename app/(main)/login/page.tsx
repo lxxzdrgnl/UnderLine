@@ -1,28 +1,35 @@
-import { signIn } from '@/lib/auth'
+import LoginButtons from './LoginButtons'
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center gap-4">
-      <form
-        action={async () => {
-          'use server'
-          await signIn('google', { redirectTo: '/' })
-        }}
-      >
-        <button type="submit" className="rounded-lg bg-white px-6 py-3 font-medium shadow border">
-          Google로 로그인
-        </button>
-      </form>
-      <form
-        action={async () => {
-          'use server'
-          await signIn('spotify', { redirectTo: '/' })
-        }}
-      >
-        <button type="submit" className="rounded-lg bg-green-500 px-6 py-3 font-medium text-white">
-          Spotify로 로그인
-        </button>
-      </form>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '60vh',
+        gap: '40px',
+      }}
+    >
+      <div style={{ textAlign: 'center' }}>
+        <h1
+          style={{
+            margin: '0 0 8px',
+            fontSize: '26px',
+            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontWeight: 400,
+            color: 'var(--text)',
+          }}
+        >
+          로그인
+        </h1>
+        <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-muted)' }}>
+          계속하려면 계정으로 로그인하세요
+        </p>
+      </div>
+
+      <LoginButtons />
     </div>
   )
 }

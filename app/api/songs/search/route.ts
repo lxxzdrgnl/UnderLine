@@ -18,11 +18,17 @@
 import { NextRequest } from 'next/server'
 import { searchSongs } from '@/lib/genius'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
+import { stripRomanized, isGeniusRomanizations } from '@/lib/strings'
 
 export const dynamic = 'force-dynamic'
 
-// 메모리 캐시 (60초 TTL)
+// 메모리 캐시 (60초 TTL, 최대 200개)
 const cache = new Map<string, { data: unknown; expires: number }>()
+function setCache(key: string, value: { data: unknown; expires: number }) {
+  if (cache.size >= 200) cache.delete(cache.keys().next().value!)
+  cache.set(key, value)
+}
 
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get('q')?.trim()
@@ -46,14 +52,21 @@ export async function GET(request: NextRequest) {
 
     const results = geniusResults.map((r) => ({
       ...r,
+      title: stripRomanized(r.title),
+      artist: isGeniusRomanizations(r.artist)
+        ? r.title.match(/^(.+?)\s*[-–]\s*/)?.[1]?.trim() ?? r.artist
+        : r.artist,
       db_id: cacheMap.get(r.genius_id)?.id ?? null,
       lyrics_status: cacheMap.get(r.genius_id)?.lyrics_status ?? null,
     }))
 
-    cache.set(q, { data: results, expires: Date.now() + 60_000 })
+    setCache(q, { data: results, expires: Date.now() + 60_000 })
     return Response.json({ results })
   } catch (error) {
-    console.error('Search error:', error)
+    logger.error('search: failed', {
+      q,
+      error: error instanceof Error ? error.message : String(error),
+    })
     return Response.json({ error: 'Search failed' }, { status: 500 })
   }
 }

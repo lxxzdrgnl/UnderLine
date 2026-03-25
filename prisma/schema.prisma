@@ -8,14 +8,16 @@ datasource db {
 }
 
 model User {
-  id         String    @id @default(cuid())
-  name       String?
-  email      String?   @unique
-  image      String?
-  role       Role      @default(ROLE_USER)
-  accounts   Account[]
-  sessions   Session[]
-  created_at DateTime  @default(now())
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  role          Role      @default(ROLE_USER)
+  accounts      Account[]
+  sessions      Session[]
+  searchHistory SearchHistory[]
+  created_at    DateTime  @default(now())
 }
 
 enum Role {
@@ -29,6 +31,7 @@ model Account {
   type              String
   provider          String
   providerAccountId String
+  email             String? // 해당 provider에서 제공한 이메일
   refresh_token     String? @db.Text
   access_token      String? @db.Text
   expires_at        Int?
@@ -56,28 +59,53 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+model OAuthState {
+  id           String   @id @default(cuid())
+  mode         String   // 'login' | 'link'
+  userId       String?  // link 모드에서만 사용
+  provider     String
+  codeVerifier String
+  callbackUrl  String   @default("/")
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+}
+
 model Song {
-  id            String       @id @default(cuid())
-  genius_id     String       @unique
-  title         String
-  artist        String
-  image_url     String?
-  genius_path   String
-  lyrics_status LyricsStatus @default(NONE)
-  locked_at     DateTime?
-  generation_id String?
-  created_at    DateTime     @default(now())
+  id              String       @id @default(cuid())
+  genius_id       String       @unique
+  title           String
+  artist          String
+  image_url       String?
+  genius_path     String
+  album           String?
+  album_image_url String?
+  release_date    String?
+  description     String?      @db.Text
+  spotify_url     String?
+  youtube_url     String?
+  apple_music_url String?
+  genius_artist_id  String?
+  genius_album_id   String?
+  featured_artists  Json?        // Array<{id:string, name:string}>
+  lyrics_status     LyricsStatus @default(NONE)
+  locked_at        DateTime?
+  generation_id    String?
+  created_at       DateTime     @default(now())
 
   raw   SongLyricsRaw?
   lines LyricLine[]
+
+  @@index([genius_artist_id])
+  @@index([genius_album_id])
 }
 
 model SongLyricsRaw {
-  id         String   @id @default(cuid())
-  song_id    String   @unique
-  raw_text   String   @db.Text
-  scraped_at DateTime @default(now())
-  song       Song     @relation(fields: [song_id], references: [id], onDelete: Cascade)
+  id          String   @id @default(cuid())
+  song_id     String   @unique
+  raw_text    String   @db.Text
+  annotations Json?
+  scraped_at  DateTime @default(now())
+  song        Song     @relation(fields: [song_id], references: [id], onDelete: Cascade)
 }
 
 model LyricLine {
@@ -92,6 +120,21 @@ model LyricLine {
   song          Song    @relation(fields: [song_id], references: [id], onDelete: Cascade)
 
   @@unique([song_id, line_number])
+}
+
+model SearchHistory {
+  id         String   @id @default(cuid())
+  userId     String
+  genius_id  String
+  title      String
+  artist     String
+  image_url  String?
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, genius_id])
+  @@index([userId])
 }
 
 enum LyricsStatus {

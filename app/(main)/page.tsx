@@ -1,13 +1,56 @@
+import { Suspense } from 'react'
 import { SearchBar } from '@/components/search/SearchBar'
+import { NowPlaying } from '@/components/NowPlaying'
+import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 
-export default function HomePage() {
+export default async function HomePage() {
+  const session = await auth()
+  const hasSpotify = session?.user?.id
+    ? !!(await prisma.account.findFirst({
+        where: { userId: session.user.id, provider: 'spotify' },
+        select: { id: true },
+      }))
+    : false
+
   return (
-    <div className="flex flex-col items-center gap-12 py-20">
-      <div className="space-y-3 text-center">
-        <h1 className="text-4xl font-bold tracking-tight">가사의 숨겨진 의미</h1>
-        <p className="text-lg text-zinc-500">한 줄 한 줄, 진짜 의미를 찾아보세요</p>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '48px',
+        padding: '80px 0',
+      }}
+    >
+      <div style={{ textAlign: 'center' }}>
+        <h1
+          style={{
+            margin: '0 0 12px',
+            fontSize: 'clamp(28px, 5vw, 44px)',
+            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontWeight: 400,
+            letterSpacing: '-0.02em',
+            color: 'var(--text)',
+            lineHeight: 1.15,
+          }}
+        >
+          가사의 숨겨진 의미
+        </h1>
+        <p
+          style={{
+            margin: 0,
+            fontSize: '15px',
+            color: 'var(--text-muted)',
+          }}
+        >
+          한 줄 한 줄, 진짜 의미를 찾아보세요
+        </p>
       </div>
-      <SearchBar />
+      <Suspense fallback={null}>
+        <SearchBar isLoggedIn={!!session?.user?.id} />
+      </Suspense>
+      {hasSpotify && <NowPlaying />}
     </div>
   )
 }

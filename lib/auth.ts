@@ -1,3 +1,8 @@
+/**
+ * NextAuth 설정.
+ * OAuth 플로우는 /api/oauth/[provider] 에서 직접 처리.
+ * NextAuth는 세션 읽기(auth())와 세션 미들웨어 역할만 담당.
+ */
 import NextAuth from 'next-auth'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import Google from 'next-auth/providers/google'
@@ -15,16 +20,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Spotify({
       clientId: process.env.SPOTIFY_CLIENT_ID!,
       clientSecret: process.env.SPOTIFY_CLIENT_SECRET!,
-      authorization: {
-        params: {
-          scope: [
-            'user-read-email',
-            'user-read-currently-playing',
-            'user-read-playback-state',
-            'user-library-read',
-          ].join(' '),
-        },
-      },
     }),
   ],
   callbacks: {
@@ -33,39 +28,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.role = (user as unknown as { role: string }).role as import('@/types').Role
       return session
     },
-    async signIn({ account, profile }) {
-      if (!account || !profile?.email) return true
-
-      const existingUser = await prisma.user.findUnique({
-        where: { email: profile.email as string },
-        include: { accounts: true },
-      })
-
-      if (existingUser) {
-        const alreadyLinked = existingUser.accounts.some(
-          (a) => a.provider === account.provider
-        )
-        if (!alreadyLinked) {
-          await prisma.account.create({
-            data: {
-              userId: existingUser.id,
-              type: account.type,
-              provider: account.provider,
-              providerAccountId: account.providerAccountId,
-              refresh_token: account.refresh_token,
-              access_token: account.access_token,
-              expires_at: account.expires_at,
-              token_type: account.token_type,
-              scope: account.scope,
-              id_token: account.id_token,
-            },
-          })
-        }
-      }
-      return true
-    },
   },
-  pages: {
-    signIn: '/login',
-  },
+  pages: { signIn: '/login' },
 })

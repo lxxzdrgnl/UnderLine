@@ -15,7 +15,21 @@ export function parseRawLyrics(html: string): string {
     .join('\n')
     .split('\n')
     .map((l) => l.trim())
-    .filter((l) => l.length > 0)
+    .filter((l) => {
+      if (!l) return false
+      // Strip Genius page metadata that leaks into lyrics containers
+      if (/Contributors/i.test(l) && /Translations/i.test(l)) return false
+      if (/^\d+\s+Contributors?/i.test(l)) return false
+      if (/^Translations?$/i.test(l)) return false
+      if (/^Read More$/i.test(l)) return false
+      // Genius song description truncated with "Read More" link
+      if (/…\s*Read More\b/i.test(l)) return false
+      if (/\.\.\.\s*Read More\b/i.test(l)) return false
+      if (/\bLyrics$/.test(l) && l.split(/\s+/).length <= 5) return false
+      // Long prose description lines before/between lyrics (e.g., Genius song descriptions)
+      if (l.length > 200 && !/^\[/.test(l)) return false
+      return true
+    })
     .join('\n')
 }
 

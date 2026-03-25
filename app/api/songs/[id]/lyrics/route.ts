@@ -23,8 +23,9 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { scrapeLyrics } from '@/lib/scraper'
-import { getReferents } from '@/lib/genius'
+import { fetchReferentsRaw, formatReferents, isReferentRawArray, fetchOriginalSongPath, isRomanizationPath } from '@/lib/genius'
 import { streamLyricInterpretations } from '@/lib/gpt'
+import { logger } from '@/lib/logger'
 import { randomUUID } from 'crypto'
 import type { LyricLineData } from '@/types'
 
@@ -150,22 +151,40 @@ export async function GET(
       }
 
       try {
+        logger.info('lyrics: start', { songId: id, generationId })
         await prisma.lyricLine.deleteMany({ where: { song_id: id } })
 
         const cachedRaw = await prisma.songLyricsRaw.findUnique({
           where: { song_id: id },
         })
         let rawLyrics: string
+        let referentsContext: string
         if (cachedRaw) {
+          logger.info('lyrics: using cached raw', { songId: id })
           rawLyrics = cachedRaw.raw_text
+          referentsContext = isReferentRawArray(cachedRaw.annotations)
+            ? formatReferents(cachedRaw.annotations)
+            : ''
         } else {
-          rawLyrics = await scrapeLyrics(song.genius_path)
+          let scrapePath = song.genius_path
+          if (isRomanizationPath(scrapePath)) {
+            const originalPath = await fetchOriginalSongPath(song.genius_id)
+            if (originalPath) {
+              logger.info('lyrics: using original path', { original: originalPath, romanized: scrapePath })
+              scrapePath = originalPath
+            }
+          }
+          logger.info('lyrics: scraping', { path: scrapePath })
+          rawLyrics = await scrapeLyrics(scrapePath)
+          logger.info('lyrics: scraped', { lines: rawLyrics.split('\n').length })
+          const rawAnnotations = await fetchReferentsRaw(song.genius_id)
+          referentsContext = rawAnnotations ? formatReferents(rawAnnotations) : ''
           await prisma.songLyricsRaw.create({
-            data: { song_id: id, raw_text: rawLyrics },
+            data: { song_id: id, raw_text: rawLyrics, annotations: rawAnnotations ?? [] },
           })
         }
 
-        const referentsContext = await getReferents(song.genius_id)
+        logger.info('lyrics: streaming GPT', { songId: id })
 
         for await (const line of streamLyricInterpretations(rawLyrics, referentsContext)) {
           controller.enqueue(
@@ -186,18 +205,25 @@ export async function GET(
           where: { id },
           data: { lyrics_status: 'DONE' },
         })
+        logger.info('lyrics: done', { songId: id })
       } catch (error) {
-        console.error('Lyrics generation error:', error)
+        logger.error('lyrics: generation failed', {
+          songId: id,
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack?.split('\n').slice(0, 5).join(' | ') : undefined,
+        })
         await prisma.lyricLine.deleteMany({ where: { song_id: id } })
         await prisma.song.update({
           where: { id },
-          data: { lyrics_status: 'FAILED' },
+          data: { lyrics_status: 'NONE', locked_at: null, generation_id: null },
         })
-        controller.enqueue(
-          encoder.encode(JSON.stringify({ error: 'Generation failed' }) + '\n')
-        )
+        try {
+          controller.enqueue(
+            encoder.encode(JSON.stringify({ error: 'Generation failed' }) + '\n')
+          )
+        } catch { /* client already disconnected */ }
       } finally {
-        controller.close()
+        try { controller.close() } catch { /* already closed */ }
       }
     },
   })

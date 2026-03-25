@@ -13,7 +13,17 @@ export function LyricLine({ line, isSelected, onClick }: Props) {
 
   if (isSection) {
     return (
-      <div className="mb-2 mt-6 text-xs font-semibold uppercase tracking-widest text-zinc-400">
+      <div
+        style={{
+          marginTop: '24px',
+          marginBottom: '8px',
+          fontSize: 'var(--text-xs)',
+          fontWeight: 600,
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          color: 'var(--text-faint)',
+        }}
+      >
         {line.original}
       </div>
     )
@@ -24,22 +34,44 @@ export function LyricLine({ line, isSelected, onClick }: Props) {
   return (
     <div
       onClick={hasInterpretation ? onClick : undefined}
-      className={`group py-1 ${hasInterpretation ? 'cursor-pointer' : ''}`}
+      style={{ padding: '3px 0', cursor: hasInterpretation ? 'pointer' : 'default' }}
     >
       <p
-        className={[
-          'text-base leading-relaxed transition-colors',
-          hasInterpretation ? 'group-hover:text-zinc-500' : '',
-          isSelected ? 'font-medium' : 'text-zinc-900 dark:text-zinc-100',
-        ].join(' ')}
+        style={{
+          margin: 0,
+          fontSize: 'var(--text-md)',
+          lineHeight: 1.65,
+          color: isSelected ? 'var(--accent)' : 'var(--text)',
+          fontWeight: isSelected ? 500 : 400,
+          transition: 'color 120ms ease',
+        }}
       >
         {line.original}
         {hasInterpretation && (
-          <span className="ml-1 text-xs text-zinc-300 dark:text-zinc-600">•</span>
+          <span
+            style={{
+              display: 'inline-block',
+              width: '4px',
+              height: '4px',
+              borderRadius: '50%',
+              background: isSelected ? 'var(--accent)' : 'var(--border-strong)',
+              marginLeft: '6px',
+              verticalAlign: 'middle',
+              marginBottom: '2px',
+              transition: 'background 120ms ease',
+            }}
+          />
         )}
       </p>
       {line.translation && (
-        <p className="text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
+        <p
+          style={{
+            margin: 0,
+            fontSize: 'var(--text-sm)',
+            lineHeight: 1.5,
+            color: 'var(--text-muted)',
+          }}
+        >
           {line.translation}
         </p>
       )}
