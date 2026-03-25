@@ -77,7 +77,7 @@ model SongLyricsRaw {
   song_id    String   @unique
   raw_text   String   @db.Text
   scraped_at DateTime @default(now())
-  song       Song     @relation(fields: [song_id], references: [id])
+  song       Song     @relation(fields: [song_id], references: [id], onDelete: Cascade)
 }
 
 model LyricLine {
@@ -89,7 +89,7 @@ model LyricLine {
   slang         String? @db.Text
   explanation   String? @db.Text
   generation_id String
-  song          Song    @relation(fields: [song_id], references: [id])
+  song          Song    @relation(fields: [song_id], references: [id], onDelete: Cascade)
 
   @@unique([song_id, line_number])
 }
