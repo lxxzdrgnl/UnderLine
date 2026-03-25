@@ -30,10 +30,15 @@ export function SearchBar({ isLoggedIn = false, onOpenChange }: Props) {
   const [query, setQuery] = useState(() => searchParams.get('q') ?? '')
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [isFocused, setIsFocused] = useState(false)
   const [history, setHistory] = useState<HistoryItem[]>([])
+  const [searchPage, setSearchPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const dropdownRef = useRef<HTMLUListElement>(null)
+  const currentQuery = useRef('')
   const router = useRouter()
 
   const showHistory = isFocused && query.trim().length < 2 && history.length > 0
@@ -42,9 +47,9 @@ export function SearchBar({ isLoggedIn = false, onOpenChange }: Props) {
   const loadHistory = useCallback(async () => {
     if (isLoggedIn) {
       try {
-        const res = await fetch('/api/user/search-history')
+        const res = await fetch('/api/user/search-history?limit=10')
         const data = await res.json()
-        setHistory(Array.isArray(data) ? data : [])
+        setHistory(Array.isArray(data.items) ? data.items : Array.isArray(data) ? data : [])
       } catch { setHistory([]) }
     } else {
       try {
@@ -108,14 +113,17 @@ export function SearchBar({ isLoggedIn = false, onOpenChange }: Props) {
   // ── Debounced search ───────────────────────────────────
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    if (query.trim().length < 2) { setResults([]); return }
+    if (query.trim().length < 2) { setResults([]); setHasMore(false); return }
 
     debounceRef.current = setTimeout(async () => {
+      currentQuery.current = query
       setLoading(true)
+      setSearchPage(1)
       try {
-        const res = await fetch(`/api/songs/search?q=${encodeURIComponent(query)}`)
+        const res = await fetch(`/api/songs/search?q=${encodeURIComponent(query)}&page=1`)
         const data = await res.json()
         setResults(data.results ?? [])
+        setHasMore(data.hasMore ?? false)
       } finally {
         setLoading(false)
       }
@@ -123,6 +131,30 @@ export function SearchBar({ isLoggedIn = false, onOpenChange }: Props) {
 
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
   }, [query])
+
+  // ── Load more on dropdown scroll ─────────────────────
+  const handleDropdownScroll = useCallback(async () => {
+    const el = dropdownRef.current
+    if (!el || loadingMore || !hasMore) return
+    const nearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 100
+    if (!nearBottom) return
+
+    setLoadingMore(true)
+    const nextPage = searchPage + 1
+    try {
+      const res = await fetch(`/api/songs/search?q=${encodeURIComponent(currentQuery.current)}&page=${nextPage}`)
+      const data = await res.json()
+      const newResults = data.results ?? []
+      setResults((prev) => {
+        const ids = new Set(prev.map((r) => r.genius_id))
+        return [...prev, ...newResults.filter((r: SearchResult) => !ids.has(r.genius_id))]
+      })
+      setHasMore(data.hasMore ?? false)
+      setSearchPage(nextPage)
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [loadingMore, hasMore, searchPage])
 
   // ── Select song ────────────────────────────────────────
   const handleSelect = async (result: SearchResult) => {
@@ -293,8 +325,8 @@ export function SearchBar({ isLoggedIn = false, onOpenChange }: Props) {
       )}
 
       {/* ── Search results dropdown ── */}
-      {!showHistory && results.length > 0 && (
-        <ul style={dropdownStyle}>
+      {isFocused && !showHistory && results.length > 0 && (
+        <ul ref={dropdownRef} onScroll={handleDropdownScroll} style={dropdownStyle}>
           {results.map((r) => (
             <li
               key={r.genius_id}
@@ -326,6 +358,11 @@ export function SearchBar({ isLoggedIn = false, onOpenChange }: Props) {
               )}
             </li>
           ))}
+          {loadingMore && (
+            <li style={{ display: 'flex', justifyContent: 'center', padding: '12px' }}>
+              <div className="spinner" />
+            </li>
+          )}
         </ul>
       )}
     </div>

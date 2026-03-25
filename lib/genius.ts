@@ -14,12 +14,20 @@ async function geniusFetch(path: string, revalidate = 0) {
 
 export { geniusFetch as geniusFetchRaw }
 
-export async function searchSongs(query: string): Promise<GeniusSearchResult[]> {
-  const params = new URLSearchParams({ q: query, per_page: '10' })
+function isTranslationPage(hit: GeniusHit): boolean {
+  return /-translation$/.test(hit.result.path)
+    || hit.result.artist_names?.startsWith('Genius') === true
+}
+
+export async function searchSongs(query: string, page = 1, perPage = 10): Promise<GeniusSearchResult[]> {
+  // Request more to account for filtered translation pages
+  const fetchSize = Math.min(perPage * 3, 50)
+  const params = new URLSearchParams({ q: query, per_page: String(fetchSize), page: String(page) })
   const data = await geniusFetch(`/search?${params}`)
 
   return (data.response.hits as GeniusHit[])
-    .filter((hit) => hit.type === 'song')
+    .filter((hit) => hit.type === 'song' && !isTranslationPage(hit))
+    .slice(0, perPage)
     .map((hit) => ({
       genius_id: String(hit.result.id),
       title: hit.result.title,

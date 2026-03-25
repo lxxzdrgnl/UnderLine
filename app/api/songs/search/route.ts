@@ -33,16 +33,18 @@ function setCache(key: string, value: { data: unknown; expires: number }) {
 
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get('q')?.trim()
-  if (!q || q.length < 2) return Response.json({ results: [] })
+  const page = Math.max(1, Number(request.nextUrl.searchParams.get('page')) || 1)
+  if (!q || q.length < 2) return Response.json({ results: [], hasMore: false })
 
-  // 캐시 확인
-  const cached = cache.get(q)
+  // 캐시 확인 (page 1만)
+  const cacheKey = `${q}:${page}`
+  const cached = cache.get(cacheKey)
   if (cached && cached.expires > Date.now()) {
-    return Response.json({ results: cached.data })
+    return Response.json(cached.data)
   }
 
   try {
-    const geniusResults = await searchSongs(q)
+    const geniusResults = await searchSongs(q, page)
     const geniusIds = geniusResults.map((r) => r.genius_id)
 
     const cachedSongs = await prisma.song.findMany({
@@ -61,8 +63,10 @@ export async function GET(request: NextRequest) {
       lyrics_status: cacheMap.get(r.genius_id)?.lyrics_status ?? null,
     }))
 
-    setCache(q, { data: results, expires: Date.now() + 60_000 })
-    return Response.json({ results })
+    const hasMore = geniusResults.length >= 10
+    const response = { results, hasMore }
+    setCache(cacheKey, { data: response, expires: Date.now() + 60_000 })
+    return Response.json(response)
   } catch (error) {
     logger.error('search: failed', {
       q,
