@@ -82,6 +82,7 @@ model Song {
   album_image_url String?
   release_date    String?
   description     String?      @db.Text
+  description_ko  String?      @db.Text
   spotify_url     String?
   youtube_url     String?
   apple_music_url String?

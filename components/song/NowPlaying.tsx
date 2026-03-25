@@ -26,7 +26,7 @@ export function NowPlaying({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
       const res = await fetch(`/api/songs/search?q=${encodeURIComponent(`${track.title} ${track.artist}`)}`)
       const data = await res.json()
       const first = data.results?.[0]
-      if (!first) return
+      if (!first) { setNavigating(false); return }
 
       let songId = first.db_id
       if (!songId) {

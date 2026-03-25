@@ -11,23 +11,30 @@ export async function AlbumTrackList({ albumId, currentGeniusId }: Props) {
 
   return (
     <section style={{ padding: '32px 0', borderTop: '1px solid var(--border)' }}>
-      <h2
-        style={{
-          margin: '0 0 4px',
-          fontSize: 'var(--text-lg)',
-          fontFamily: "'DM Serif Display', Georgia, serif",
-          fontWeight: 400,
-          color: 'var(--text)',
-        }}
-      >
-        앨범 수록곡
-      </h2>
-      <p style={{ margin: '0 0 20px', fontSize: 'var(--text-xs)', color: 'var(--text-faint)' }}>
-        {tracks.length}곡
-      </p>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '16px' }}>
+        <h2
+          style={{
+            margin: 0,
+            fontSize: 'var(--text-lg)',
+            fontFamily: "'DM Serif Display', Georgia, serif",
+            fontWeight: 400,
+            color: 'var(--text)',
+          }}
+        >
+          앨범 수록곡
+        </h2>
+        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-faint)' }}>
+          {tracks.length}곡
+        </span>
+      </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {tracks.map((track) => {
+      <div style={{
+        background: 'var(--bg-surface)',
+        borderRadius: 'var(--r-lg)',
+        border: '1px solid var(--border)',
+        overflow: 'hidden',
+      }}>
+        {tracks.map((track, idx) => {
           const isCurrent = track.genius_id === currentGeniusId
           return (
             <a
@@ -37,25 +44,43 @@ export async function AlbumTrackList({ albumId, currentGeniusId }: Props) {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '16px',
-                padding: '10px 12px',
-                borderRadius: 'var(--r-md)',
+                gap: '14px',
+                padding: '10px 16px',
                 textDecoration: 'none',
                 transition: 'background 120ms',
-                borderLeft: isCurrent ? '2px solid var(--accent)' : '2px solid transparent',
+                borderBottom: idx < tracks.length - 1 ? '1px solid var(--border)' : 'none',
+                background: isCurrent ? 'var(--accent-bg)' : 'transparent',
               }}
             >
               <span
                 style={{
-                  width: '20px',
-                  textAlign: 'right',
+                  width: '22px',
+                  textAlign: 'center',
                   flexShrink: 0,
                   fontSize: 'var(--text-sm)',
                   color: isCurrent ? 'var(--accent)' : 'var(--text-faint)',
                   fontWeight: isCurrent ? 600 : 400,
                 }}
               >
-                {track.track_number}
+                {isCurrent ? (
+                  <span style={{ display: 'inline-flex', gap: '2px', alignItems: 'flex-end', height: '14px' }}>
+                    {[1, 2, 3].map((i) => (
+                      <span
+                        key={i}
+                        style={{
+                          display: 'inline-block',
+                          width: '3px',
+                          background: 'var(--accent)',
+                          borderRadius: '1px',
+                          animation: `eq-bar 0.4s ${i * 0.12}s ease infinite alternate`,
+                          height: '60%',
+                        }}
+                      />
+                    ))}
+                  </span>
+                ) : (
+                  track.track_number
+                )}
               </span>
 
               {track.image_url && (
@@ -63,11 +88,8 @@ export async function AlbumTrackList({ albumId, currentGeniusId }: Props) {
                   src={track.image_url}
                   alt=""
                   style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: 'var(--r-sm)',
-                    objectFit: 'cover',
-                    flexShrink: 0,
+                    width: '36px', height: '36px',
+                    borderRadius: 'var(--r-sm)', objectFit: 'cover', flexShrink: 0,
                   }}
                 />
               )}
@@ -75,10 +97,10 @@ export async function AlbumTrackList({ albumId, currentGeniusId }: Props) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p
                   style={{
-                    margin: '0 0 2px',
+                    margin: 0,
                     fontSize: 'var(--text-sm)',
                     fontWeight: isCurrent ? 600 : 400,
-                    color: isCurrent ? 'var(--text)' : 'var(--text-muted)',
+                    color: isCurrent ? 'var(--accent)' : 'var(--text)',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -86,18 +108,20 @@ export async function AlbumTrackList({ albumId, currentGeniusId }: Props) {
                 >
                   {track.title}
                 </p>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: 'var(--text-xs)',
-                    color: 'var(--text-faint)',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {track.artist}
-                </p>
+                {track.artist && (
+                  <p
+                    style={{
+                      margin: '2px 0 0',
+                      fontSize: 'var(--text-xs)',
+                      color: 'var(--text-faint)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {track.artist}
+                  </p>
+                )}
               </div>
             </a>
           )

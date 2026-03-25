@@ -10,6 +10,18 @@ function getOpenAI(): OpenAI {
   return openai
 }
 
+export async function translateText(text: string, targetLang = '한국어'): Promise<string> {
+  const res = await getOpenAI().chat.completions.create({
+    model: 'gpt-4o-mini',
+    temperature: 0.3,
+    messages: [
+      { role: 'system', content: `Translate the following text to ${targetLang}. Return only the translation, no explanation.` },
+      { role: 'user', content: text },
+    ],
+  })
+  return res.choices[0]?.message?.content?.trim() ?? text
+}
+
 export function parseNdjsonLine(line: string): LyricLineData | null {
   if (!line.trim()) return null
   // Strip accidental markdown fences (e.g. ```json or ```)
