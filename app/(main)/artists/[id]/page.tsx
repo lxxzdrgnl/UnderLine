@@ -28,8 +28,9 @@ export default async function ArtistPage({ params }: Props) {
           display: 'flex',
           alignItems: 'center',
           gap: '28px',
-          padding: '40px 28px 32px',
-          margin: '0 -28px',
+          padding: '40px max(16px, calc(50vw - 566px)) 32px',
+          marginLeft: 'calc(-50vw + 50%)',
+          marginRight: 'calc(-50vw + 50%)',
           borderBottom: '1px solid var(--border)',
           background: 'linear-gradient(to bottom, rgba(255,255,255,0.04) 0%, transparent 100%)',
         }}

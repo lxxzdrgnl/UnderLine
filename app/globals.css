@@ -176,6 +176,15 @@ h1, h2, h3 {
 .hover-scale:hover { transform: scale(1.02); }
 .playlist-card:hover button { opacity: 1 !important; }
 
+/* ─── Layout responsive ───────────────────────────────── */
+.main-content { padding: 0 28px; }
+header { padding: 0 28px; }
+
+@media (max-width: 640px) {
+  .main-content { padding: 0 16px; }
+  header { padding: 0 16px; }
+}
+
 /* ─── Home responsive ──────────────────────────────────── */
 .home-wrap { padding: 140px 24px 80px; }
 .home-brand { font-size: clamp(56px, 16vw, 88px); }

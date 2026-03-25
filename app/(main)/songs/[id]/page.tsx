@@ -169,7 +169,7 @@ export default async function SongPage({ params }: Props) {
           display: 'flex',
           alignItems: 'flex-start',
           gap: '24px',
-          padding: '32px max(28px, calc(50vw - 566px)) 24px',
+          padding: '32px max(16px, calc(50vw - 566px)) 24px',
           marginLeft: 'calc(-50vw + 50%)',
           marginRight: 'calc(-50vw + 50%)',
           borderBottom: '1px solid var(--border)',

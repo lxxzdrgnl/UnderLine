@@ -14,7 +14,6 @@ export default async function MainLayout({ children }: { children: React.ReactNo
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0 28px',
           height: '56px',
           borderBottom: '1px solid var(--border)',
           position: 'sticky',
@@ -88,12 +87,12 @@ export default async function MainLayout({ children }: { children: React.ReactNo
       </header>
 
       <main
+        className="main-content"
         style={{
           flex: 1,
           maxWidth: '1160px',
           width: '100%',
           margin: '0 auto',
-          padding: '0 28px',
         }}
       >
         {children}
