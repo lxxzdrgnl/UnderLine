@@ -14,7 +14,35 @@ function formatTime(ms: number) {
 export function NowPlaying() {
   const [track, setTrack] = useState<NowPlayingTrack | null | undefined>(undefined)
   const [progress, setProgress] = useState(0)
+  const [navigating, setNavigating] = useState(false)
   const router = useRouter()
+
+  const handleClick = useCallback(async () => {
+    if (!track || navigating) return
+    setNavigating(true)
+    try {
+      const res = await fetch(`/api/songs/search?q=${encodeURIComponent(`${track.title} ${track.artist}`)}`)
+      const data = await res.json()
+      const first = data.results?.[0]
+      if (!first) return
+
+      let songId = first.db_id
+      if (!songId) {
+        const post = await fetch('/api/songs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(first),
+        })
+        const d = await post.json()
+        songId = d.id
+      }
+      router.push(`/songs/${songId}`)
+    } catch {
+      // 조용히 무시
+    } finally {
+      setNavigating(false)
+    }
+  }, [track, navigating, router])
 
   const fetchTrack = useCallback(async () => {
     try {
@@ -63,17 +91,17 @@ export function NowPlaying() {
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '14px',
-        padding: '14px 18px',
-        borderRadius: 'var(--r-md)',
-        border: '1px solid var(--border)',
-        background: 'var(--bg-surface)',
-        maxWidth: '440px',
+        gap: '12px',
+        padding: '12px 0',
+        borderTop: '1px solid var(--border)',
+        maxWidth: '560px',
         width: '100%',
-        cursor: 'pointer',
+        cursor: navigating ? 'wait' : 'pointer',
+        opacity: navigating ? 0.6 : 1,
+        transition: 'opacity 200ms',
       }}
-      onClick={() => router.push(`/?q=${encodeURIComponent(`${track.title} ${track.artist}`)}`)}
-      title="이 곡 검색하기"
+      onClick={handleClick}
+      title="이 곡의 가사 보기"
     >
       {/* 앨범 아트 */}
       {track.image_url && (
@@ -81,11 +109,12 @@ export function NowPlaying() {
           src={track.image_url}
           alt=""
           style={{
-            width: '52px',
-            height: '52px',
+            width: '40px',
+            height: '40px',
             borderRadius: 'var(--r-sm)',
             objectFit: 'cover',
             flexShrink: 0,
+            opacity: track.is_playing ? 1 : 0.5,
           }}
         />
       )}
@@ -96,34 +125,32 @@ export function NowPlaying() {
           display: 'flex',
           alignItems: 'center',
           gap: '6px',
-          marginBottom: '4px',
+          marginBottom: '2px',
         }}>
           {track.is_playing ? (
-            <span style={{ display: 'flex', gap: '2px', alignItems: 'flex-end', height: '12px' }}>
+            <span style={{ display: 'flex', gap: '2px', alignItems: 'flex-end', height: '10px' }}>
               {[1, 2, 3].map((i) => (
                 <span
                   key={i}
                   style={{
                     display: 'inline-block',
-                    width: '3px',
-                    background: '#1DB954',
+                    width: '2px',
+                    background: 'var(--accent)',
                     borderRadius: '1px',
                     animation: `eq-bar 0.8s ease-in-out ${i * 0.15}s infinite alternate`,
-                    height: `${4 + i * 3}px`,
+                    height: `${3 + i * 2}px`,
                   }}
                 />
               ))}
             </span>
           ) : (
-            <span style={{ fontSize: '10px', color: 'var(--text-faint)', letterSpacing: '0.05em' }}>
-              ■
-            </span>
+            <span style={{ width: '2px', height: '8px', background: 'var(--text-faint)', borderRadius: '1px', display: 'inline-block' }} />
           )}
           <span style={{
-            fontSize: 'var(--text-xs)',
-            color: '#1DB954',
+            fontSize: '10px',
+            color: track.is_playing ? 'var(--accent)' : 'var(--text-faint)',
             fontWeight: 600,
-            letterSpacing: '0.05em',
+            letterSpacing: '0.08em',
           }}>
             {track.is_playing ? 'NOW PLAYING' : 'PAUSED'}
           </span>
@@ -131,8 +158,8 @@ export function NowPlaying() {
 
         {/* 곡명 · 아티스트 */}
         <p style={{
-          margin: '0 0 2px',
-          fontSize: 'var(--text-base)',
+          margin: '0 0 1px',
+          fontSize: '14px',
           fontWeight: 500,
           color: 'var(--text)',
           overflow: 'hidden',

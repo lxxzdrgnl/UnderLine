@@ -157,7 +157,7 @@ export function SearchBar({ isLoggedIn = false }: Props) {
     top: 'calc(100% + 6px)',
     left: 0,
     right: 0,
-    zIndex: 20,
+    zIndex: 50,
     background: 'var(--bg-surface)',
     border: '1px solid var(--border)',
     borderRadius: 'var(--r-md)',
@@ -165,7 +165,8 @@ export function SearchBar({ isLoggedIn = false }: Props) {
     listStyle: 'none',
     margin: 0,
     padding: 0,
-    overflow: 'hidden',
+    maxHeight: '360px',
+    overflowY: 'auto',
   }
 
   const rowStyle: React.CSSProperties = {
