@@ -25,7 +25,24 @@ export function NowPlaying({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
     try {
       const res = await fetch(`/api/songs/search?q=${encodeURIComponent(`${track.title} ${track.artist}`)}`)
       const data = await res.json()
-      const first = data.results?.[0]
+      const results: Array<{ genius_id: string; title: string; artist: string; image_url: string | null; db_id: string | null; lyrics_status: string | null }> = data.results ?? []
+      if (results.length === 0) { setNavigating(false); return }
+
+      // Find best match by title+artist similarity instead of blindly taking first
+      function normalize(s: string) { return s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '') }
+      const trackTitle = normalize(track.title)
+      const trackArtist = normalize(track.artist)
+      function score(r: { title: string; artist: string }) {
+        const t = normalize(r.title)
+        const a = normalize(r.artist)
+        let s = 0
+        if (t === trackTitle) s += 4
+        else if (t.includes(trackTitle) || trackTitle.includes(t)) s += 2
+        if (a === trackArtist) s += 3
+        else if (a.includes(trackArtist) || trackArtist.includes(a)) s += 1
+        return s
+      }
+      const first = results.reduce((best, r) => score(r) >= score(best) ? r : best, results[0])
       if (!first) { setNavigating(false); return }
 
       let songId = first.db_id
