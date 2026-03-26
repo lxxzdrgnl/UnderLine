@@ -21,8 +21,8 @@ export async function POST(_req: Request, { params }: Params) {
   }
 
   // Check if already Korean (no translation needed)
-  const nonAscii = song.description.replace(/[\x00-\x7F]/g, '').length / song.description.length
-  if (nonAscii > 0.3) {
+  const koreanRatio = (song.description.match(/[\uAC00-\uD7A3\u1100-\u11FF\u3130-\u318F]/g) ?? []).length / song.description.length
+  if (koreanRatio > 0.1) {
     return Response.json({ translated: song.description })
   }
 

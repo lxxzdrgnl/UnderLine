@@ -12,8 +12,8 @@ export function TranslatedDescription({ text, songId, cached }: Props) {
   const [translated, setTranslated] = useState<string | null>(cached)
   const [loading, setLoading] = useState(false)
 
-  const nonAsciiRatio = text.replace(/[\x00-\x7F]/g, '').length / text.length
-  const isAlreadyKorean = nonAsciiRatio > 0.3
+  const koreanRatio = (text.match(/[\uAC00-\uD7A3\u1100-\u11FF\u3130-\u318F]/g) ?? []).length / text.length
+  const isAlreadyKorean = koreanRatio > 0.1
 
   useEffect(() => {
     // Already have translation (from DB cache or already Korean)
