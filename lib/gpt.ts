@@ -12,7 +12,7 @@ function getOpenAI(): OpenAI {
 
 export async function translateText(text: string, targetLang = '한국어'): Promise<string> {
   const res = await getOpenAI().chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: 'gpt-4.1-nano',
     temperature: 0.3,
     messages: [
       { role: 'system', content: `Translate the following text to ${targetLang}. Return only the translation, no explanation.` },
@@ -208,7 +208,7 @@ export async function* streamLyricInterpretations(
     const userMessage = buildUserMessage(remainingLyrics, referentsContext, processedCount)
 
     const stream = await getOpenAI().chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4.1',
       stream: true,
       temperature: 0.7,
       max_tokens: 16000,
