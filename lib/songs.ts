@@ -37,7 +37,7 @@ export async function getOrCreateSong(id: string) {
     !song.description ||
     (featuredArr.length > 0 && featuredArr.some((fa) => !fa.type))
   )
-  if (needsDetail) {
+  if (needsDetail && song) {
     const detail = await fetchSongDetail(song.genius_id)
     if (detail) {
       const detailData = {
