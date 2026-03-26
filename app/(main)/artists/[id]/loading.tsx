@@ -4,7 +4,7 @@ export default function ArtistLoading() {
       {/* Hero skeleton — centered layout with banner bg */}
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
-        gap: '20px', padding: '80px 16px 32px',
+        gap: '20px', padding: '80px max(16px, calc(50vw - 566px)) 32px',
         marginLeft: 'calc(-50vw + 50%)', marginRight: 'calc(-50vw + 50%)',
         borderBottom: '1px solid var(--border)',
         background: 'linear-gradient(to top, var(--bg) 0%, rgba(255,255,255,0.03) 100%)',

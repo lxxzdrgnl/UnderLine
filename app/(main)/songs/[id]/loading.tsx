@@ -3,7 +3,7 @@ export default function SongLoading() {
     <div className="page-enter" style={{ paddingBottom: '64px' }}>
       {/* Hero skeleton */}
       <div style={{
-        display: 'flex', gap: '24px', padding: '32px 16px 24px', alignItems: 'flex-start',
+        display: 'flex', gap: '24px', padding: '32px max(16px, calc(50vw - 566px)) 24px', alignItems: 'flex-start',
         marginLeft: 'calc(-50vw + 50%)', marginRight: 'calc(-50vw + 50%)',
         borderBottom: '1px solid var(--border)',
       }}>

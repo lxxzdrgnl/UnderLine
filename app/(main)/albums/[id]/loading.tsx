@@ -1,7 +1,12 @@
 export default function AlbumLoading() {
   return (
     <div className="page-enter" style={{ paddingBottom: '64px' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '28px', padding: '40px 0 32px', borderBottom: '1px solid var(--border)' }}>
+      <div style={{
+        display: 'flex', alignItems: 'flex-end', gap: '28px',
+        padding: '40px max(16px, calc(50vw - 566px)) 32px',
+        marginLeft: 'calc(-50vw + 50%)', marginRight: 'calc(-50vw + 50%)',
+        borderBottom: '1px solid var(--border)',
+      }}>
         <div className="skeleton" style={{ width: '180px', height: '180px', borderRadius: 'var(--r-xl)', flexShrink: 0 }} />
         <div style={{ flex: 1 }}>
           <div className="skeleton" style={{ width: '40px', height: '12px', marginBottom: '10px' }} />
