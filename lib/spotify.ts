@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 
 // ─── Client Credentials (no user auth needed) ─────────────────
@@ -29,33 +30,36 @@ export interface SpotifyAlbum {
   album_type: string
 }
 
-export async function fetchSpotifyArtistAlbums(artistName: string): Promise<SpotifyAlbum[]> {
+async function _fetchSpotifyArtistAlbums(artistName: string): Promise<SpotifyAlbum[]> {
   const token = await getSpotifyClientToken()
-  if (!token) return []
+  if (!token) { console.error('[spotify] no client token for', artistName); return [] }
 
   // 1. Search for artist
   const searchRes = await fetch(
     `https://api.spotify.com/v1/search?q=${encodeURIComponent(artistName)}&type=artist&limit=1`,
-    { headers: { Authorization: `Bearer ${token}` } }
+    { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' }
   )
-  if (!searchRes.ok) return []
+  if (!searchRes.ok) { console.error('[spotify] artist search failed', searchRes.status, artistName); return [] }
   const searchData = await searchRes.json()
   const spotifyArtist = searchData.artists?.items?.[0]
-  if (!spotifyArtist) return []
+  if (!spotifyArtist) { console.error('[spotify] artist not found on spotify:', artistName); return [] }
 
   // 2. Get albums
   const albumsRes = await fetch(
-    `https://api.spotify.com/v1/artists/${spotifyArtist.id}/albums?include_groups=album,single,compilation&limit=10&market=KR`,
-    { headers: { Authorization: `Bearer ${token}` } }
+    `https://api.spotify.com/v1/artists/${spotifyArtist.id}/albums?include_groups=album,single,compilation&limit=50&market=KR`,
+    { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' }
   )
-  if (!albumsRes.ok) return []
+  if (!albumsRes.ok) {
+    console.error('[spotify] albums fetch failed', albumsRes.status, artistName)
+    throw new Error(`Spotify albums fetch failed: ${albumsRes.status}`)
+  }
   const albumsData = await albumsRes.json()
 
   const spotifyArtistId = spotifyArtist.id
   return (albumsData.items ?? [])
     .filter((a: { artists: { id: string }[]; album_type: string; total_tracks: number }) =>
       a.artists?.some((ar) => ar.id === spotifyArtistId)
-      && (a.album_type === 'album' || a.album_type === 'compilation' || a.total_tracks >= 3)
+      && (a.album_type === 'album' || a.total_tracks >= 4)
     )
     .map((a: { id: string; name: string; images: { url: string }[]; release_date: string; album_type: string }) => ({
       id: a.id,
@@ -65,6 +69,13 @@ export async function fetchSpotifyArtistAlbums(artistName: string): Promise<Spot
       album_type: a.album_type,
     }))
 }
+
+export const fetchSpotifyArtistAlbums = (artistName: string) =>
+  unstable_cache(
+    () => _fetchSpotifyArtistAlbums(artistName),
+    ['spotify-artist-albums', artistName],
+    { revalidate: 3600 }
+  )()
 
 export async function getSpotifyAlbumFirstTrack(albumId: string): Promise<{ name: string; artist: string } | null> {
   const token = await getSpotifyClientToken()

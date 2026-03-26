@@ -65,9 +65,6 @@ export async function fetchSongDetail(geniusId: string): Promise<SongDetail | nu
     const appleMedia = media.find((m) => m.provider === 'apple_music')
 
     const isRomanization = isGeniusRomanizations(song.primary_artist?.name ?? '')
-    const featuredArtists: Array<{ id: string; name: string }> = (song.featured_artists ?? []).map(
-      (a: { id: number; name: string }) => ({ id: String(a.id), name: a.name })
-    )
 
     // For Genius Romanizations, find the original song via song_relationships and use its artist
     let effectiveArtistId: string | null = song.primary_artist?.id ? String(song.primary_artist.id) : null
@@ -87,6 +84,16 @@ export async function fetchSongDetail(geniusId: string): Promise<SongDetail | nu
         } catch { /* keep null */ }
       }
     }
+
+    const primaryArtists: Array<{ id: number; name: string }> = song.primary_artists ?? []
+    const featuredArtists: Array<{ id: string; name: string; type: 'primary' | 'featured' }> = [
+      ...primaryArtists.map((a) => ({ id: String(a.id), name: a.name, type: 'primary' as const })),
+      ...(song.featured_artists ?? []).map((a: { id: number; name: string }) => ({
+        id: String(a.id),
+        name: a.name,
+        type: 'featured' as const,
+      })),
+    ]
 
     const rawDesc = song.description?.plain?.trim() || null
     const rawAlbum = song.album?.name ?? null
@@ -141,7 +148,7 @@ export async function fetchAlbumDetail(id: string): Promise<AlbumDetail | null> 
       id: String(album.id),
       name: album.name,
       cover_art_url: album.cover_art_url ?? null,
-      release_date: album.release_date_for_display ?? null,
+      release_date: album.release_date ?? album.release_date_for_display ?? null,
       artist_name: album.artist?.name ?? '',
       genius_artist_id: album.artist?.id ? String(album.artist.id) : null,
       description: album.description?.plain?.trim() && album.description.plain.trim() !== '?' ? album.description.plain.trim() : null,
@@ -194,6 +201,7 @@ export interface ArtistSong {
   artist: string
   image_url: string | null
 }
+
 
 export async function fetchArtistInfo(id: string): Promise<ArtistInfo | null> {
   try {

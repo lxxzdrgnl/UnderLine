@@ -31,11 +31,17 @@ export async function getOrCreateSong(id: string) {
   let song = await prisma.song.findUnique({ where: { id } })
     ?? await prisma.song.findUnique({ where: { genius_id: id } })
 
-  // 2. If found but missing detail → fetch and fill
-  if (song && !song.description) {
+  // 2. Re-fetch if missing detail, or featured_artists lacks type markers (old data)
+  const featuredArr = Array.isArray(song?.featured_artists) ? song.featured_artists as Array<{ type?: string }> : []
+  const needsDetail = song && (
+    !song.description ||
+    (featuredArr.length > 0 && featuredArr.some((fa) => !fa.type))
+  )
+  if (needsDetail) {
     const detail = await fetchSongDetail(song.genius_id)
     if (detail) {
       const detailData = {
+        artist: detail.artist,
         album: detail.album,
         album_image_url: detail.album_image_url,
         release_date: detail.release_date,
@@ -60,6 +66,7 @@ export async function getOrCreateSong(id: string) {
     const detail = await fetchSongDetail(id)
     if (!detail) return null
     const detailData = {
+      artist: detail.artist,
       album: detail.album,
       album_image_url: detail.album_image_url,
       release_date: detail.release_date,
@@ -76,7 +83,6 @@ export async function getOrCreateSong(id: string) {
       create: {
         genius_id: id,
         title: stripRomanized(detail.title),
-        artist: detail.artist,
         image_url: detail.image_url,
         genius_path: detail.genius_path,
         ...detailData,

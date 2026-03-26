@@ -245,7 +245,7 @@ export function SearchPageContent({ isLoggedIn }: { isLoggedIn: boolean }) {
 
           {type === 'artists' && results.map((a: { id: string; name: string; image_url: string | null }, idx: number) => (
             <div
-              key={a.id}
+              key={`${a.id}-${idx}`}
               onClick={() => handleArtistSelect(a)}
               className="hover-row"
               style={{

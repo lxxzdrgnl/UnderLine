@@ -1,6 +1,6 @@
+import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
-import Link from 'next/link'
-import { fetchArtistInfo, fetchArtistSongs, fetchSongDetail, searchSongs } from '@/lib/genius'
+import { fetchArtistInfo, fetchArtistSongs, fetchSongDetail, fetchAlbumDetail, searchSongs } from '@/lib/genius'
 import { translateText } from '@/lib/gpt'
 import { fetchSpotifyArtistAlbums } from '@/lib/spotify'
 import { prisma } from '@/lib/prisma'
@@ -8,7 +8,119 @@ import { ArtistSongs } from './ArtistSongs'
 import { ArtistBio } from './ArtistBio'
 import { AlbumGrid } from './AlbumGrid'
 
-async function AlbumsSection({ artistName, artistId, songIds }: { artistName: string; artistId: string; songIds: string[] }) {
+function BioSkeleton() {
+  return (
+    <div style={{ width: '100%', maxWidth: '640px', textAlign: 'center' }}>
+      <div className="skeleton" style={{ width: '100%', height: '14px', marginBottom: '8px' }} />
+      <div className="skeleton" style={{ width: '95%', height: '14px', marginBottom: '8px' }} />
+      <div className="skeleton" style={{ width: '90%', height: '14px', marginBottom: '8px' }} />
+      <div className="skeleton" style={{ width: '80%', height: '14px', marginBottom: '8px' }} />
+      <div className="skeleton" style={{ width: '50px', height: '12px' }} />
+    </div>
+  )
+}
+
+function AlbumsSkeleton() {
+  return (
+    <div style={{ paddingTop: '32px' }}>
+      <div className="skeleton" style={{ width: '60px', height: '22px', marginBottom: '20px' }} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '20px' }}>
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i}>
+            <div className="skeleton" style={{ width: '100%', aspectRatio: '1', borderRadius: 'var(--r-md)', marginBottom: '10px' }} />
+            <div className="skeleton" style={{ width: '80%', height: '14px', marginBottom: '4px' }} />
+            <div className="skeleton" style={{ width: '50%', height: '12px' }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Take the first N sentences from text, return them and the char offset where they end
+function firstSentences(text: string, count: number): { first: string; offset: number } {
+  let offset = 0
+  let found = 0
+  while (found < count && offset < text.length) {
+    const next = text.indexOf('. ', offset)
+    if (next === -1) { offset = text.length; break }
+    offset = next + 2
+    found++
+  }
+  return { first: text.slice(0, offset).trim(), offset }
+}
+
+async function BioSection({ id, description }: { id: string; description: string }) {
+  const cached = await prisma.artistCache.findUnique({ where: { genius_artist_id: id } })
+
+  const { first, offset } = firstSentences(description, 20)
+  const hasMore = offset < description.length
+
+  // Full translation cached
+  if (cached?.description_ko) {
+    return <ArtistBio text={cached.description_ko} />
+  }
+
+  // Preview cached — skip re-translation
+  if (cached?.description_preview) {
+    return (
+      <ArtistBio
+        text={cached.description_preview}
+        artistId={hasMore ? id : undefined}
+        originalOffset={hasMore ? offset : undefined}
+      />
+    )
+  }
+
+  let firstKo: string | null = null
+  try {
+    firstKo = await translateText(first)
+  } catch {
+    // translation failed — will show original English below
+  }
+
+  if (firstKo) {
+    try {
+      await prisma.artistCache.upsert({
+        where: { genius_artist_id: id },
+        create: { genius_artist_id: id, ...(!hasMore ? { description_ko: firstKo } : { description_preview: firstKo }) },
+        update: {                        ...(!hasMore ? { description_ko: firstKo } : { description_preview: firstKo }) },
+      })
+    } catch {
+      // cache failure is non-critical
+    }
+  }
+
+  return (
+    <ArtistBio
+      text={firstKo ?? first}
+      artistId={hasMore && firstKo ? id : undefined}
+      originalOffset={hasMore && firstKo ? offset : undefined}
+    />
+  )
+}
+
+// Normalize partial dates ("2021" → "2021-01-01", "2021-03" → "2021-03-01") for consistent sorting
+function normalizeDate(d: string | null): string | null {
+  if (!d) return null
+  if (/^\d{4}$/.test(d)) return `${d}-01-01`
+  if (/^\d{4}-\d{2}$/.test(d)) return `${d}-01`
+  return d
+}
+
+function sortByDateDesc<T extends { release_date: string | null }>(arr: T[]): T[] {
+  return [...arr].sort((a, b) => {
+    const da = normalizeDate(a.release_date)
+    const db = normalizeDate(b.release_date)
+    if (!da && !db) return 0
+    if (!da) return 1
+    if (!db) return -1
+    return db.localeCompare(da)
+  })
+}
+
+async function AlbumsSection({ artistName, artistId, page1Songs }: { artistName: string; artistId: string; page1Songs: { genius_id: string; artist: string }[] }) {
+  try {
   // 1. Build album map from DB + song details in parallel
   const dbSongs = await prisma.song.findMany({
     where: { genius_artist_id: artistId, genius_album_id: { not: null }, album: { not: null } },
@@ -35,8 +147,72 @@ async function AlbumsSection({ artistName, artistId, songIds }: { artistName: st
     return null
   }
 
-  // 2. Get Spotify albums for cover art + release dates
-  const spotifyAlbums = await fetchSpotifyArtistAlbums(artistName)
+  // 2. Get Spotify albums for cover art + release dates (fall back to DB if unavailable)
+  const spotifyAlbums = await fetchSpotifyArtistAlbums(artistName).catch(() => [])
+
+  if (spotifyAlbums.length === 0) {
+    // Spotify unavailable — pre-filter to primary-artist songs, fetch page 2 if needed, cap at 40
+    const nameLower = artistName.toLowerCase()
+    const isPrimary = (s: { artist: string }) => s.artist.toLowerCase().startsWith(nameLower)
+
+    const seen = new Set(page1Songs.map((s) => s.genius_id))
+    const primarySongs = page1Songs.filter(isPrimary)
+    let page = 2
+    while (primarySongs.length < 40 && page <= 5) {
+      const more = await fetchArtistSongs(artistId, page).catch(() => [])
+      if (more.length === 0) break
+      for (const s of more) {
+        if (!seen.has(s.genius_id)) {
+          seen.add(s.genius_id)
+          if (isPrimary(s)) primarySongs.push(s)
+        }
+      }
+      page++
+    }
+
+    if (primarySongs.length > 0) {
+      const capped = primarySongs.slice(0, 40)
+      // Use DB first to avoid API calls for already-cached songs
+      const dbCached = await prisma.song.findMany({
+        where: { genius_id: { in: capped.map((s) => s.genius_id) }, genius_album_id: { not: null }, album: { not: null } },
+        select: { genius_id: true, genius_album_id: true, album: true, album_image_url: true, genius_artist_id: true },
+      })
+      for (const s of dbCached) {
+        if (s.album && s.genius_album_id && s.genius_artist_id === artistId && !albumMap.has(s.album.toLowerCase())) {
+          albumMap.set(s.album.toLowerCase(), { id: s.genius_album_id, name: s.album, image: s.album_image_url })
+        }
+      }
+      const cachedIds = new Set(dbCached.map((s) => s.genius_id))
+      const uncached = capped.filter((s) => !cachedIds.has(s.genius_id))
+      if (uncached.length > 0) {
+        const details = await Promise.all(
+          uncached.map((s) => fetchSongDetail(s.genius_id).catch(() => null))
+        )
+        for (const d of details) {
+          if (d?.genius_album_id && d.album && d.genius_artist_id === artistId && !albumMap.has(d.album.toLowerCase())) {
+            albumMap.set(d.album.toLowerCase(), { id: d.genius_album_id, name: d.album, image: d.album_image_url ?? null })
+          }
+        }
+      }
+    }
+    if (albumMap.size === 0) return null
+
+    // Fetch release dates from Genius album detail; skip albums not owned by this artist
+    const albumsRaw = (await Promise.all(
+      Array.from(albumMap.values()).map(async (a) => {
+        const detail = await fetchAlbumDetail(a.id).catch(() => null)
+        if (detail?.genius_artist_id && detail.genius_artist_id !== artistId) return null
+        return { id: a.id, name: a.name, image_url: a.image, release_date: detail?.release_date ?? null, href: `/albums/${a.id}` }
+      })
+    )).filter((a): a is NonNullable<typeof a> => a !== null)
+    const albumsWithDates = sortByDateDesc(albumsRaw)
+    return (
+      <section style={{ paddingTop: '32px' }}>
+        <h2 style={{ margin: '0 0 20px', fontSize: 'var(--text-xl)', fontWeight: 400, color: 'var(--text)' }}>앨범</h2>
+        <AlbumGrid albums={albumsWithDates} />
+      </section>
+    )
+  }
 
   // 3. For unmatched Spotify albums, search Genius to find album IDs
   const unmatchedSpotify = spotifyAlbums.filter((sa) => !findAlbumMatch(sa.name))
@@ -72,24 +248,22 @@ async function AlbumsSection({ artistName, artistId, songIds }: { artistName: st
     }
   }
 
-  // Sort by release date (newest first), null dates last
-  albums.sort((a, b) => {
-    if (!a.release_date && !b.release_date) return 0
-    if (!a.release_date) return 1
-    if (!b.release_date) return -1
-    return b.release_date.localeCompare(a.release_date)
-  })
+  const sortedAlbums = sortByDateDesc(albums)
 
-  if (albums.length === 0) return null
+  if (sortedAlbums.length === 0) return null
 
   return (
     <section style={{ paddingTop: '32px' }}>
       <h2 style={{ margin: '0 0 20px', fontSize: 'var(--text-xl)', fontWeight: 400, color: 'var(--text)' }}>
         앨범
       </h2>
-      <AlbumGrid albums={albums} />
+      <AlbumGrid albums={sortedAlbums} />
     </section>
   )
+  } catch (e) {
+    console.error('[AlbumsSection] error:', e)
+    return null
+  }
 }
 
 interface Props {
@@ -104,30 +278,10 @@ export default async function ArtistPage({ params }: Props) {
   ])
   if (!artist) notFound()
 
-  // Translate artist description (cached in DB)
-  let bioKo: string | null = null
-  if (artist.description) {
-    const cached = await prisma.artistCache.findUnique({ where: { genius_artist_id: id } })
-    if (cached?.description_ko) {
-      bioKo = cached.description_ko
-    } else {
-      try {
-        bioKo = await translateText(artist.description)
-        await prisma.artistCache.upsert({
-          where: { genius_artist_id: id },
-          create: { genius_artist_id: id, description_ko: bioKo },
-          update: { description_ko: bioKo },
-        })
-      } catch {
-        bioKo = null
-      }
-    }
-  }
-
   return (
     <div className="page-enter" style={{ paddingBottom: '64px' }}>
 
-      {/* ── Hero ───────────────────────────────────────── */}
+      {/* Hero */}
       <div
         className="artist-hero"
         style={{
@@ -227,17 +381,21 @@ export default async function ArtistPage({ params }: Props) {
         </div>
       </div>
 
-      {/* ── Bio ──────────────────────────────────────── */}
-      {(bioKo || artist.description) && (
-        <div style={{ padding: '24px 0 0' }}>
-          <ArtistBio text={bioKo ?? artist.description!} />
+      {/* Bio */}
+      {artist.description && (
+        <div style={{ padding: '24px 0 0', display: 'flex', justifyContent: 'center' }}>
+          <Suspense fallback={<BioSkeleton />}>
+            <BioSection id={id} description={artist.description} />
+          </Suspense>
         </div>
       )}
 
-      {/* ── Albums ─────────────────────────────────────── */}
-      <AlbumsSection artistName={artist.name} artistId={id} songIds={songs.map((s) => s.genius_id)} />
+      {/* Albums */}
+      <Suspense fallback={<AlbumsSkeleton />}>
+        <AlbumsSection artistName={artist.name} artistId={id} page1Songs={songs} />
+      </Suspense>
 
-      {/* ── Popular songs ──────────────────────────────── */}
+      {/* Popular songs */}
       {songs.length > 0 && (
         <section style={{ paddingTop: '32px' }}>
           <h2 style={{ margin: '0 0 20px', fontSize: 'var(--text-xl)', fontWeight: 400, color: 'var(--text)' }}>

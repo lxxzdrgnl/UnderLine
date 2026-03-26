@@ -203,8 +203,10 @@ export function SearchBar({ isLoggedIn = false, onOpenChange }: Props) {
         position: 'relative',
         borderRadius: isOpen ? '8px 8px 0 0' : '8px',
         background: 'var(--bg-surface)',
-        border: `1px solid ${isFocused ? 'rgba(255,255,255,0.12)' : 'var(--border)'}`,
-        borderBottom: isOpen ? 'none' : undefined,
+        borderTop: `1px solid ${isFocused ? 'rgba(255,255,255,0.12)' : 'var(--border)'}`,
+        borderLeft: `1px solid ${isFocused ? 'rgba(255,255,255,0.12)' : 'var(--border)'}`,
+        borderRight: `1px solid ${isFocused ? 'rgba(255,255,255,0.12)' : 'var(--border)'}`,
+        borderBottom: isOpen ? 'none' : `1px solid ${isFocused ? 'rgba(255,255,255,0.12)' : 'var(--border)'}`,
         transition: 'border-color 200ms, border-radius 150ms',
       }}>
         {/* Search icon */}

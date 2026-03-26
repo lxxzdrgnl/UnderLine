@@ -62,9 +62,10 @@ model VerificationToken {
 }
 
 model ArtistCache {
-  genius_artist_id String   @id
-  description_ko   String?  @db.Text
-  created_at       DateTime @default(now())
+  genius_artist_id    String   @id
+  description_ko      String?  @db.Text  // full translation
+  description_preview String?  @db.Text  // first 3 sentences translation
+  created_at          DateTime @default(now())
 }
 
 model OAuthState {

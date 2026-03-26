@@ -44,7 +44,7 @@ function cleanArtistName(name: string): string {
   return s.trim()
 }
 
-type FeaturedArtist = { id: string; name: string }
+type FeaturedArtist = { id: string; name: string; type?: string }
 
 function parseFeaturedArtists(raw: unknown): FeaturedArtist[] {
   if (!Array.isArray(raw)) return []
@@ -73,17 +73,8 @@ export default async function SongPage({ params }: Props) {
   const displayDescription = song.description === '?' ? null : song.description
   const cachedTranslation = song.description_ko ?? null
 
-  // Remove featured artist names from the main artist display
-  let cleanArtist = displayArtist.split(/\s+(?:feat\.?|ft\.?|with\.?)\s+/i)[0]
-  if (featuredArtists.length > 0) {
-    for (const fa of featuredArtists) {
-      // Remove patterns like ", Name", " & Name", " and Name"
-      cleanArtist = cleanArtist
-        .replace(new RegExp(`\\s*[,&]\\s*${fa.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i'), '')
-        .replace(new RegExp(`${fa.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*[,&]\\s*`, 'i'), '')
-    }
-    cleanArtist = cleanArtist.trim().replace(/[,&]\s*$/, '').trim()
-  }
+  const primaryArtists = featuredArtists.filter((fa) => fa.type === 'primary')
+  const trueFeaturedArtists = featuredArtists.filter((fa) => fa.type === 'featured')
 
   const streamingLinks = [
     song.spotify_url && { label: 'Spotify', url: song.spotify_url, color: '#1DB954' },
@@ -141,24 +132,30 @@ export default async function SongPage({ params }: Props) {
             <FavoriteButton songId={song.id} />
           </div>
 
-          {/* Artist + feat. */}
+          {/* Artists */}
           <p style={{ margin: '0 0 6px', fontSize: 'var(--text-base)', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-            {song.genius_artist_id ? (
-              <a href={`/artists/${song.genius_artist_id}`} style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 }}>
-                {cleanArtist}
-              </a>
-            ) : (
-              <span>{cleanArtist}</span>
+            {primaryArtists.map((a, i) => (
+              <span key={a.id}>
+                {i > 0 && <span style={{ color: 'var(--text-faint)', margin: '0 5px' }}>&amp;</span>}
+                <a href={`/artists/${a.id}`} style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 }}>
+                  {cleanArtistName(a.name)}
+                </a>
+              </span>
+            ))}
+            {primaryArtists.length === 0 && (
+              song.genius_artist_id
+                ? <a href={`/artists/${song.genius_artist_id}`} style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 }}>{displayArtist}</a>
+                : <span>{displayArtist}</span>
             )}
-            {featuredArtists.length > 0 && (
+            {trueFeaturedArtists.length > 0 && (
               <span style={{ color: 'var(--text-faint)', fontSize: 'var(--text-sm)', marginLeft: '6px' }}>
-                feat.{' '}
-                {featuredArtists.map((fa, i) => (
+                {'feat. '}
+                {trueFeaturedArtists.map((fa, i) => (
                   <span key={fa.id}>
                     <a href={`/artists/${fa.id}`} style={{ color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }}>
-                      {fa.name}
+                      {cleanArtistName(fa.name)}
                     </a>
-                    {i < featuredArtists.length - 1 && ', '}
+                    {i < trueFeaturedArtists.length - 1 && <span style={{ color: 'var(--text-faint)', margin: '0 4px' }}>&amp;</span>}
                   </span>
                 ))}
               </span>
