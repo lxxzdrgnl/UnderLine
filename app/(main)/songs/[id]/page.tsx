@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import { stripRomanized, isGeniusRomanizations } from '@/lib/strings'
 import { getOrCreateSong } from '@/lib/songs'
+import Link from 'next/link'
 import { LyricsView } from '@/components/lyrics/LyricsView'
 import { AlbumTrackList } from '@/components/song/AlbumTrackList'
 import { FavoriteButton } from '@/components/playlist/FavoriteButton'
@@ -137,14 +138,14 @@ export default async function SongPage({ params }: Props) {
             {primaryArtists.map((a, i) => (
               <span key={a.id}>
                 {i > 0 && <span style={{ color: 'var(--text-faint)', margin: '0 5px' }}>&amp;</span>}
-                <a href={`/artists/${a.id}`} style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 }}>
+                <Link href={`/artists/${a.id}`} style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 }}>
                   {cleanArtistName(a.name)}
-                </a>
+                </Link>
               </span>
             ))}
             {primaryArtists.length === 0 && (
               song.genius_artist_id
-                ? <a href={`/artists/${song.genius_artist_id}`} style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 }}>{displayArtist}</a>
+                ? <Link href={`/artists/${song.genius_artist_id}`} style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 }}>{displayArtist}</Link>
                 : <span>{displayArtist}</span>
             )}
             {trueFeaturedArtists.length > 0 && (
@@ -152,9 +153,9 @@ export default async function SongPage({ params }: Props) {
                 {'feat. '}
                 {trueFeaturedArtists.map((fa, i) => (
                   <span key={fa.id}>
-                    <a href={`/artists/${fa.id}`} style={{ color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }}>
+                    <Link href={`/artists/${fa.id}`} style={{ color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }}>
                       {cleanArtistName(fa.name)}
-                    </a>
+                    </Link>
                     {i < trueFeaturedArtists.length - 1 && <span style={{ color: 'var(--text-faint)', margin: '0 4px' }}>&amp;</span>}
                   </span>
                 ))}
@@ -168,12 +169,12 @@ export default async function SongPage({ params }: Props) {
               {song.album && (
                 <span>
                   {song.genius_album_id ? (
-                    <a
+                    <Link
                       href={`/albums/${song.genius_album_id}`}
                       style={{ color: 'var(--text-muted)', textDecoration: 'none' }}
                     >
                       {song.album}
-                    </a>
+                    </Link>
                   ) : (
                     song.album
                   )}

@@ -24,6 +24,12 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - `useModalDismiss(ref, onDismiss, enabled?)` — attaches mousedown outside + ESC listeners
 - Use for any floating panel, modal, or dropdown that should close on outside interaction
 
+### Internal navigation — always use `<Link>` from `next/link`
+- Never use `<a href="...">` for internal routes — it causes full page reload and blocks navigation until the server responds
+- Use `<Link href="...">` for all `/artists/`, `/songs/`, `/albums/`, `/playlists/`, `/recents/`, `/profile/`, `/settings/` links
+- `<Link>` triggers instant client-side navigation and shows `loading.tsx` skeleton immediately
+- `<a>` is only correct for external URLs (http/https) and `mailto:`
+
 ### Lyrics streaming — `hooks/useLyricsStream.ts`
 - `useLyricsStream(songId)` → `{ lines, status, retry }`
 - Handles fetch, NDJSON parse, abort, 202 retry, no_lyrics, error states

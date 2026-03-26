@@ -28,22 +28,47 @@ export function NowPlaying({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
       const results: Array<{ genius_id: string; title: string; artist: string; image_url: string | null; db_id: string | null; lyrics_status: string | null }> = data.results ?? []
       if (results.length === 0) { setNavigating(false); return }
 
-      // Find best match by title+artist similarity instead of blindly taking first
+      // Find best match by title+artist similarity
       function normalize(s: string) { return s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '') }
       const trackTitle = normalize(track.title)
-      const trackArtist = normalize(track.artist)
-      function score(r: { title: string; artist: string }) {
-        const t = normalize(r.title)
-        const a = normalize(r.artist)
-        let s = 0
-        if (t === trackTitle) s += 4
-        else if (t.includes(trackTitle) || trackTitle.includes(t)) s += 2
-        if (a === trackArtist) s += 3
-        else if (a.includes(trackArtist) || trackArtist.includes(a)) s += 1
-        return s
+
+      // Title similarity: substring ratio (remix/edition penalty), bigram overlap as fallback
+      function bigrams(s: string): Set<string> {
+        const set = new Set<string>()
+        for (let i = 0; i < s.length - 1; i++) set.add(s.slice(i, i + 2))
+        return set
       }
-      const first = results.reduce((best, r) => score(r) >= score(best) ? r : best, results[0])
-      if (!first) { setNavigating(false); return }
+      function titleSim(a: string, b: string): number {
+        if (a === b) return 1
+        if (b.includes(a)) return a.length / b.length  // b has extra suffix (remix, edition…)
+        if (a.includes(b)) return b.length / a.length
+        // Fallback: Dice coefficient on character bigrams
+        if (a.length < 2 || b.length < 2) return 0
+        const ba = bigrams(a), bb = bigrams(b)
+        let common = 0
+        for (const g of ba) if (bb.has(g)) common++
+        return (2 * common) / (ba.size + bb.size)
+      }
+
+      // Artist match: Genius artist_names is comma-separated (includes featured artists)
+      function artistScore(geniusArtist: string, spotifyArtist: string): number {
+        const gParts = geniusArtist.split(',').map(p => normalize(p))
+        const sParts = spotifyArtist.split(',').map(p => normalize(p))
+        for (const g of gParts)
+          for (const s of sParts)
+            if (g === s) return 4
+        for (const g of gParts)
+          for (const s of sParts)
+            if (g.includes(s) || s.includes(g)) return 2
+        return 0
+      }
+
+      // Pre-compute scores to avoid redundant calls in reduce
+      const scored = results.map(r => ({
+        r,
+        s: titleSim(trackTitle, normalize(r.title)) * 6 + artistScore(r.artist, track.artist),
+      }))
+      const first = scored.reduce((best, cur) => cur.s > best.s ? cur : best, scored[0]).r
 
       let songId = first.db_id
       if (!songId) {

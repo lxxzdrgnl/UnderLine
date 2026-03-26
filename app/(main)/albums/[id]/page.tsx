@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { fetchAlbumDetail, fetchAlbumTracks } from '@/lib/genius'
 import { SongLink } from '@/components/SongLink'
@@ -64,9 +65,9 @@ export default async function AlbumPage({ params }: Props) {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             {album.genius_artist_id ? (
-              <a href={`/artists/${album.genius_artist_id}`} style={{ fontSize: 'var(--text-sm)', color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 }}>
+              <Link href={`/artists/${album.genius_artist_id}`} style={{ fontSize: 'var(--text-sm)', color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 }}>
                 {album.artist_name}
-              </a>
+              </Link>
             ) : (
               <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{album.artist_name}</span>
             )}
