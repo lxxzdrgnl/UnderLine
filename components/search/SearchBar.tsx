@@ -27,6 +27,22 @@ interface HistoryItem {
 const LS_KEY = 'ul_search_history'
 const MAX_LOCAL = 10
 
+function norm(s: string) { return s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '') }
+function sortByRelevance(items: SearchResult[], q: string): SearchResult[] {
+  if (!q.trim()) return items
+  const nq = norm(q)
+  return [...items].sort((a, b) => {
+    const score = (t: string) => {
+      const nt = norm(t)
+      if (nt === nq) return 3
+      if (nt.startsWith(nq)) return 2
+      if (nt.includes(nq)) return 1
+      return 0
+    }
+    return score(b.title) - score(a.title)
+  })
+}
+
 interface Props {
   isLoggedIn?: boolean
   onOpenChange?: (open: boolean) => void
@@ -135,7 +151,7 @@ export function SearchBar({ isLoggedIn = false, onOpenChange }: Props) {
         ])
         const songsData = await songsRes.json()
         const artistsData = await artistsRes.json()
-        setResults(songsData.results ?? [])
+        setResults(sortByRelevance(songsData.results ?? [], query))
         setArtists((artistsData.items ?? []).slice(0, 3))
         setHasMore(songsData.hasMore ?? false)
       } finally {

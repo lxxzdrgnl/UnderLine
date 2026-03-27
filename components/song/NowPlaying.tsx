@@ -23,16 +23,16 @@ export function NowPlaying({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
     if (!track || navigating) return
     setNavigating(true)
     try {
-      const res = await fetch(`/api/songs/search?q=${encodeURIComponent(`${track.title} ${track.artist}`)}`)
+      // Strip collaborator parentheticals from Spotify title before searching and matching
+      // e.g. "luther (with sza)" → "luther", "St. Chroma (feat. Daniel Caesar)" → "St. Chroma"
+      const strippedTitle = track.title.replace(/\s*[\(\[](feat\.|ft\.|featuring|with\s)[^\)\]]*[\)\]]/gi, '').trim()
+      const res = await fetch(`/api/songs/search?q=${encodeURIComponent(`${strippedTitle} ${track.artist}`)}`)
       const data = await res.json()
       const results: Array<{ genius_id: string; title: string; artist: string; image_url: string | null; db_id: string | null; lyrics_status: string | null }> = data.results ?? []
       if (results.length === 0) { setNavigating(false); return }
 
       // Find best match by title+artist similarity
       function normalize(s: string) { return s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '') }
-      // Strip featured-artist parenthetical from Spotify title before matching
-      // e.g. "St. Chroma (feat. Daniel Caesar)" → "St. Chroma"
-      const strippedTitle = track.title.replace(/\s*[\(\[](feat\.|ft\.|featuring)[^\)\]]*[\)\]]/gi, '').trim()
       const trackTitle = normalize(strippedTitle)
 
       // Title similarity: substring ratio (remix/edition penalty), bigram overlap as fallback
