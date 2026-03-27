@@ -30,7 +30,10 @@ export function NowPlaying({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
 
       // Find best match by title+artist similarity
       function normalize(s: string) { return s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '') }
-      const trackTitle = normalize(track.title)
+      // Strip featured-artist parenthetical from Spotify title before matching
+      // e.g. "St. Chroma (feat. Daniel Caesar)" → "St. Chroma"
+      const strippedTitle = track.title.replace(/\s*[\(\[](feat\.|ft\.|featuring)[^\)\]]*[\)\]]/gi, '').trim()
+      const trackTitle = normalize(strippedTitle)
 
       // Title similarity: substring ratio (remix/edition penalty), bigram overlap as fallback
       function bigrams(s: string): Set<string> {
