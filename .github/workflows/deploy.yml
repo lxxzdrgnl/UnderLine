@@ -13,42 +13,39 @@ jobs:
       contents: read
 
     steps:
-      - name: Setup SSH Key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.PC_SSH_KEY }}" > ~/.ssh/pc_key
-          chmod 600 ~/.ssh/pc_key
-          ssh-keyscan -H ${{ secrets.PC_SSH_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Write .env
-        env:
-          APP_ENV: ${{ secrets.APP_ENV }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          echo "$APP_ENV" | grep -v '^OPENAI_API_KEY=' > app.env
-          echo "OPENAI_API_KEY=\"$OPENAI_API_KEY\"" >> app.env
-          scp -i ~/.ssh/pc_key app.env \
-            ${{ secrets.PC_SSH_USER }}@${{ secrets.PC_SSH_HOST }}:~/servers/underline/.env
-          rm -f app.env
-
+      # 가정용 서버(동적 IP)라 ssh-keyscan 대신 appleboy/ssh-action으로 접속한다.
+      # .env는 APP_ENV에서 OPENAI_API_KEY 줄을 빼고 별도 시크릿 값으로 덧붙여 기록.
       - name: Deploy to server
-        run: |
-          ssh -i ~/.ssh/pc_key \
-            ${{ secrets.PC_SSH_USER }}@${{ secrets.PC_SSH_HOST }} \
-            "cd ~/servers/underline/repo && \
-             git fetch origin && git reset --hard origin/main && \
-             docker run --rm --network servers_blueming-net \
-               -e DATABASE_URL=\"\$(grep DATABASE_URL ~/servers/underline/.env | cut -d'=' -f2- | tr -d '\"')\" \
-               -v ~/servers/underline/repo:/app -w /app node:22-alpine \
-               sh -c 'npx prisma migrate deploy' && \
-             cd ~/servers && \
-             docker compose up -d --build --no-deps under-line && \
-             echo '⏳ Waiting for startup...' && \
-             sleep 10 && \
-             docker logs under-line --tail=20 && \
-             docker inspect -f '{{.State.Running}}' under-line | grep -q 'true' && \
-             echo '✅ Deployed' || (echo '❌ Failed' && exit 1)"
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PC_SSH_HOST }}
+          username: ${{ secrets.PC_SSH_USER }}
+          key: ${{ secrets.PC_SSH_KEY }}
+          command_timeout: 20m
+          script: |
+            set -e
+            mkdir -p ~/servers/underline
+            cat > ~/servers/underline/app.env << 'APPENV_EOF'
+            ${{ secrets.APP_ENV }}
+            APPENV_EOF
+            grep -v '^OPENAI_API_KEY=' ~/servers/underline/app.env > ~/servers/underline/.env || true
+            rm -f ~/servers/underline/app.env
+            cat >> ~/servers/underline/.env << 'OPENAI_EOF'
+            OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}"
+            OPENAI_EOF
 
-      - name: Cleanup SSH Key
-        if: always()
-        run: rm -f ~/.ssh/pc_key
+            cd ~/servers/underline/repo
+            git fetch origin && git reset --hard origin/main
+            docker run --rm --network servers_blueming-net \
+              -e DATABASE_URL="$(grep DATABASE_URL ~/servers/underline/.env | cut -d'=' -f2- | tr -d '"')" \
+              -v ~/servers/underline/repo:/app -w /app node:22-alpine \
+              sh -c 'npx prisma migrate deploy'
+
+            cd ~/servers
+            docker compose up -d --build --no-deps under-line
+            echo '⏳ Waiting for startup...'
+            sleep 10
+            docker logs under-line --tail=20
+            docker inspect -f '{{.State.Running}}' under-line | grep -q 'true' \
+              && echo '✅ Deployed' \
+              || (echo '❌ Failed' && exit 1)
