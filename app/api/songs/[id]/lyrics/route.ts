@@ -75,8 +75,20 @@ export async function GET(
 
   const { song, generationId } = action
 
+  // If the client disconnects mid-stream, keep generating and saving to the DB
+  // so the next visit gets the finished lyrics instead of a failed generation.
+  let clientGone = false
   const stream = new ReadableStream({
     async start(controller) {
+      const send = (chunk: Uint8Array) => {
+        if (clientGone) return
+        try {
+          controller.enqueue(chunk)
+        } catch {
+          clientGone = true
+          logger.info('lyrics: client disconnected, continuing generation', { songId: id })
+        }
+      }
       const buffer: LyricLineData[] = []
 
       const flushBuffer = async () => {
@@ -126,7 +138,7 @@ export async function GET(
           if (!rawLyrics) {
             logger.info('lyrics: no lyrics found', { songId: id })
             await prisma.song.update({ where: { id }, data: { lyrics_status: 'DONE' } })
-            controller.enqueue(encoder.encode(JSON.stringify({ no_lyrics: true }) + '\n'))
+            send(encoder.encode(JSON.stringify({ no_lyrics: true }) + '\n'))
             return
           }
           const rawAnnotations = await fetchReferentsRaw(song.genius_id)
@@ -139,7 +151,7 @@ export async function GET(
         logger.info('lyrics: streaming GPT', { songId: id })
 
         for await (const line of streamLyricInterpretations(rawLyrics, referentsContext)) {
-          controller.enqueue(encodeLine(line))
+          send(encodeLine(line))
           buffer.push(line)
           if (buffer.length >= 10) await flushBuffer()
         }
@@ -161,14 +173,16 @@ export async function GET(
           where: { id },
           data: { lyrics_status: 'NONE', locked_at: null, generation_id: null },
         })
-        try {
-          controller.enqueue(
-            encoder.encode(JSON.stringify({ error: 'Generation failed' }) + '\n')
-          )
-        } catch { /* client already disconnected */ }
+        send(encoder.encode(JSON.stringify({ error: 'Generation failed' }) + '\n'))
       } finally {
-        try { controller.close() } catch { /* already closed */ }
+        if (!clientGone) {
+          try { controller.close() } catch { /* already closed */ }
+        }
       }
+    },
+    cancel() {
+      clientGone = true
+      logger.info('lyrics: client disconnected, continuing generation', { songId: id })
     },
   })
 
