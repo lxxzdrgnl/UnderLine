@@ -1,4 +1,6 @@
+import { execFile } from 'node:child_process'
 import * as cheerio from 'cheerio'
+import { logger } from '@/lib/logger'
 
 export function parseRawLyrics(html: string): string {
   const $ = cheerio.load(html)
@@ -33,6 +35,20 @@ export function parseRawLyrics(html: string): string {
     .join('\n')
 }
 
+// Genius' Cloudflare serves a JS challenge (403, cf-mitigated: challenge) to
+// Node fetch from the home server's IP, but lets BusyBox wget (present in the
+// node:alpine runtime image) through. Try fetch first, fall back to wget.
+function fetchWithWget(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    execFile(
+      'wget',
+      ['-q', '-T', '20', '-O', '-', url],
+      { maxBuffer: 10 * 1024 * 1024 },
+      (err, stdout) => (err ? reject(err) : resolve(stdout)),
+    )
+  })
+}
+
 export async function scrapeLyrics(geniusPath: string): Promise<string> {
   const url = `https://genius.com${geniusPath}`
   const res = await fetch(url, {
@@ -41,9 +57,16 @@ export async function scrapeLyrics(geniusPath: string): Promise<string> {
     },
   })
 
-  if (!res.ok) throw new Error(`Scraping failed: ${res.status} for ${url}`)
+  if (res.ok) return parseRawLyrics(await res.text())
 
-  const html = await res.text()
-  const raw = parseRawLyrics(html)
-  return raw
+  logger.warn('scraper: fetch blocked, retrying with wget', { status: res.status, url })
+  let html: string
+  try {
+    html = await fetchWithWget(url)
+  } catch (e) {
+    throw new Error(
+      `Scraping failed: fetch ${res.status}, wget ${e instanceof Error ? e.message : e} for ${url}`,
+    )
+  }
+  return parseRawLyrics(html)
 }
