@@ -12,7 +12,7 @@ function getOpenAI(): OpenAI {
 
 export async function translateText(text: string, targetLang = '한국어'): Promise<string> {
   const res = await getOpenAI().chat.completions.create({
-    model: 'gpt-4.1-nano',
+    model: 'gpt-5.4-nano',
     temperature: 0.3,
     messages: [
       { role: 'system', content: `Translate the following text to ${targetLang}. Return only the translation, no explanation.` },
